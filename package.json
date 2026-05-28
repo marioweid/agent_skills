@@ -1,0 +1,19 @@
+{
+  "name": "agent-skills",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Agent Skills for Guild Wars automation and Python development.",
+  "keywords": [
+    "agent-skills",
+    "pi-package"
+  ],
+  "license": "MIT",
+  "pi": {
+    "skills": [
+      "./gwa2-bot",
+      "./karpathy-guidelines",
+      "./py4gw",
+      "./python-pro"
+    ]
+  }
+}
