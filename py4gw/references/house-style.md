@@ -48,7 +48,8 @@ Use pyright **only if it's installed in the environment**. There's no CI step th
   - `python "py4gw_mcp_server.py" --help`
   - `python "Sources/modular_bot/tools/validate_modular_docs.py"`
   - `python "Widgets/Data/test_merchant_rules_regression.py"`
-- **Regression tests are throwaway.** Maintainers don't accept regression tests in the repo. Write them to verify a change, run them to confirm behavior, then delete them before committing. This applies only to new regression tests you author — the existing committed targeted scripts above (e.g. `test_merchant_rules_regression.py`) are left alone.
+- **Existing regression tests are canonical — use them, never delete them.** When a committed regression script already covers the area you're touching (e.g. `test_merchant_rules_regression.py`), run it to verify your change. If you changed the logic it tests, **modify the regression test to match** — never delete it and never leave it stale.
+- **New regression tests you author are throwaway.** Maintainers don't accept *new* regression tests in the repo. Write one to verify a change, run it to confirm behavior, then delete it before committing. This applies only to regression tests that didn't already exist — never delete a pre-existing committed one.
 
 ## Comments
 

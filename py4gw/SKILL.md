@@ -218,7 +218,8 @@ def main():
 - **Import exact HeroAI submodules** — `from HeroAI.follow.leader_publish import ...`, never `from HeroAI.follow import ...`. The `HeroAI/follow/__init__.py` intentionally exports nothing.
 - **Read `FOLLOW_REFACTOR_HANDOVER.md` before touching follow code** — the prior refactor failed; the rebuild must be incremental with checkpoints.
 - **Verify a function exists before calling it** — `Py4GWCoreLib/__init__.py` is a wide facade; not every name in the conceptual model is necessarily re-exported. Grep before assuming.
-- **Write a regression test to verify a change, then remove it before committing.** Maintainers don't accept regression tests in the repo — they're a throwaway verification step, not a deliverable. See `references/house-style.md` § Linting / Testing.
+- **Use the existing regression test if one already covers the area you touch.** Run it to verify. If you changed the logic it tests, modify the regression test to match. Never delete a pre-existing committed regression test.
+- **Write a *new* regression test to verify a change, then remove it before committing.** Maintainers don't accept new regression tests in the repo — a new one is a throwaway verification step, not a deliverable. See `references/house-style.md` § Linting / Testing.
 
 ### MUST NOT DO
 
@@ -233,7 +234,8 @@ def main():
 - **Add a widget without a `.widget` marker in the folder.** Discovery is folder-based; without the marker the folder is invisible to `WidgetHandler`.
 - **Treat the conceptual model document as exhaustive.** It defines layers and terminology; the actual function surface lives in the modules themselves. Grep when in doubt.
 - **Refactor follow / HeroAI broadly in one pass.** `FOLLOW_REFACTOR_HANDOVER.md` documents the failure mode; the rebuild is incremental.
-- **Commit regression tests you authored for verification.** They're throwaway — delete them before the commit. Existing committed targeted scripts are not in scope. See `references/house-style.md` § Linting / Testing.
+- **Commit a new regression test you authored for verification.** New ones are throwaway — delete them before the commit.
+- **Delete or ignore a pre-existing committed regression test.** Use it to verify, update it when you change the logic it covers, but never remove it. See `references/house-style.md` § Linting / Testing.
 
 ## Output Templates
 
