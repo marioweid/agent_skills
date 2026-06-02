@@ -48,6 +48,7 @@ Use pyright **only if it's installed in the environment**. There's no CI step th
   - `python "py4gw_mcp_server.py" --help`
   - `python "Sources/modular_bot/tools/validate_modular_docs.py"`
   - `python "Widgets/Data/test_merchant_rules_regression.py"`
+- **Regression tests are throwaway.** Maintainers don't accept regression tests in the repo. Write them to verify a change, run them to confirm behavior, then delete them before committing. This applies only to new regression tests you author — the existing committed targeted scripts above (e.g. `test_merchant_rules_regression.py`) are left alone.
 
 ## Comments
 

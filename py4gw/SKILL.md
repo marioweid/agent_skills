@@ -34,7 +34,7 @@ Specific scenarios:
 - **HeroAI subsystem** — combat, targeting, follow. Performance-sensitive per-frame pipeline; uses `frame_cache`, shared-memory `leader_publish`, exact submodule imports (`HeroAI.follow.leader_publish`, never `HeroAI.follow`). Read `FOLLOW_REFACTOR_HANDOVER.md` before touching follow code. See `references/heroai-subsystem.md`.
 - **Debugging** — a bot that hangs, fails a map transition, stalls in a coroutine, prints nothing to the console, throws on import. See `references/debugging-playbook.md`.
 - **Explaining** a CoreLib function: signature, layer, real call sites, gotchas. Use `references/corelib-surface.md` as the index.
-- **Reviewing** a bot pre-commit (return contract, coroutine hygiene, console logging discipline, layer respect, no edits to `Py4GW.ini` / launcher INI / injection log).
+- **Reviewing** a bot pre-commit (return contract, coroutine hygiene, console logging discipline, layer respect, no edits to `Py4GW.ini` / launcher INI / injection log, no throwaway regression tests staged).
 
 ## What the user provides vs. what the skill provides
 
@@ -218,6 +218,7 @@ def main():
 - **Import exact HeroAI submodules** — `from HeroAI.follow.leader_publish import ...`, never `from HeroAI.follow import ...`. The `HeroAI/follow/__init__.py` intentionally exports nothing.
 - **Read `FOLLOW_REFACTOR_HANDOVER.md` before touching follow code** — the prior refactor failed; the rebuild must be incremental with checkpoints.
 - **Verify a function exists before calling it** — `Py4GWCoreLib/__init__.py` is a wide facade; not every name in the conceptual model is necessarily re-exported. Grep before assuming.
+- **Write a regression test to verify a change, then remove it before committing.** Maintainers don't accept regression tests in the repo — they're a throwaway verification step, not a deliverable. See `references/house-style.md` § Linting / Testing.
 
 ### MUST NOT DO
 
@@ -232,6 +233,7 @@ def main():
 - **Add a widget without a `.widget` marker in the folder.** Discovery is folder-based; without the marker the folder is invisible to `WidgetHandler`.
 - **Treat the conceptual model document as exhaustive.** It defines layers and terminology; the actual function surface lives in the modules themselves. Grep when in doubt.
 - **Refactor follow / HeroAI broadly in one pass.** `FOLLOW_REFACTOR_HANDOVER.md` documents the failure mode; the rebuild is incremental.
+- **Commit regression tests you authored for verification.** They're throwaway — delete them before the commit. Existing committed targeted scripts are not in scope. See `references/house-style.md` § Linting / Testing.
 
 ## Output Templates
 
