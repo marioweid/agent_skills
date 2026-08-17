@@ -27,6 +27,18 @@ pipeline/
 | `pipeline/pipeline.md` | `~/.claude/commands/pipeline.md` | *(needs an opencode-native rewrite — see Notes)* |
 | `pipeline/agents/` | `~/.claude/agents` | `~/.config/opencode/agents` |
 
+The commands below link whole folders — correct on a **clean machine** where those
+dirs hold nothing else. Two cases need care:
+
+- **Shared dirs (agents/commands).** If `~/.claude/agents`, `~/.config/opencode/agents`,
+  or `~/.claude/commands` already hold other files, link the pipeline files
+  **individually** instead of the folder, so you don't clobber them (see the
+  "Shared dir" snippet).
+- **Machine-local extra skills (overlay).** If a machine needs skills that aren't
+  in this repo (e.g. work-only ones), make the skills dir a **real folder** and
+  symlink `skills/*` in, plus the extra skills from their own location (see the
+  "Overlay" snippet). A whole-folder link can't mix two sources.
+
 ## Setup
 
 Clone anywhere; set `REPO` to that path.
@@ -53,6 +65,33 @@ ln -sfn "$REPO/pipeline/agents"      "$HOME/.claude/agents"
 
 `ln -sfn` on a directory replaces the link atomically; it does **not** recurse,
 so re-running is safe.
+
+#### Shared dir (link pipeline files individually)
+
+When an agents/commands dir already holds other files:
+
+```sh
+# Claude agents dir shared with other agents
+for a in architect critic docs-writer implementer qa-engineer quality-checker; do
+  ln -sf "$REPO/pipeline/agents/$a.md" "$HOME/.claude/agents/$a.md"
+done
+# opencode agents dir (keeps your own agents in place)
+for a in architect critic docs-writer implementer qa-engineer quality-checker; do
+  ln -sf "$REPO/pipeline/agents/$a.md" "$HOME/.config/opencode/agents/$a.md"
+done
+```
+
+#### Overlay (repo skills + machine-local extras)
+
+When a machine also needs skills not in this repo (e.g. work-only), point the
+skills dir at both sources with per-skill links:
+
+```sh
+EXTRA="$HOME/path/to/local/skills"          # where the extra skills live
+mkdir -p "$HOME/.claude/skills"
+for d in "$REPO"/skills/*/;   do ln -sfn "$d" "$HOME/.claude/skills/$(basename "$d")"; done
+for d in "$EXTRA"/my-extra-skill; do ln -sfn "$d" "$HOME/.claude/skills/$(basename "$d")"; done
+```
 
 ### Windows
 
