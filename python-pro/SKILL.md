@@ -1,6 +1,6 @@
 ---
 name: python-pro
-description: Use when writing, reviewing, or refactoring Python 3.13 code that needs type safety, async correctness, or solid tests. Generates type-annotated Python, configures `ty check` in strict mode, writes pytest suites that emphasize edge cases / property-based / mutation testing, and validates with ruff (lint and format) — not mypy / black / poetry. Invoke for type hints, async/await, dataclasses, dependency injection, structured logging, error handling, packaging with uv, and any task that should match the user's global Python standards in `~/.claude/CLAUDE.md`.
+description: Use when writing, reviewing, or refactoring Python 3.13 code that needs type safety, async correctness, or solid tests. Generates type-annotated Python, configures `ty check` for strict type checking, writes pytest suites that emphasize edge cases / property-based / mutation testing, and validates with ruff (lint and format) — not mypy / black / poetry. Invoke for type hints, async/await, dataclasses, dependency injection, structured logging, error handling, packaging with uv, and any task that should match the user's global Python standards in `~/.claude/CLAUDE.md`.
 license: MIT
 metadata:
   author: mario.weidner@gmx.de (forked + retuned from Jeffallan/claude-skills)
@@ -10,7 +10,7 @@ metadata:
   role: specialist
   scope: implementation
   output-format: code
-  related-skills: fastapi-expert, debugging-wizard, test-driven-development
+  related-skills: fastapi, modern-python, python-design-patterns, systematic-debugging
 ---
 
 # Python Pro
@@ -35,7 +35,7 @@ Do **not** trigger on framework-specific work that has its own skill — FastAPI
 | Purpose | Tool | Notes |
 |---------|------|-------|
 | Runtime | Python **3.13** | not 3.11+, not 3.12 |
-| Deps + venv | `uv` (`uv venv`, `uv pip install`, `uv lock`) | not pip / poetry / pipenv |
+| Deps + venv | `uv` (`uv add`, `uv sync`, `uv lock`) | not pip / poetry / pipenv |
 | Lint | `ruff check` | replaces flake8, pylint, isort, pyupgrade |
 | Format | `ruff format` | replaces black |
 | Static types | `ty check` | replaces mypy / pyright; configure strictness via `[tool.ty.rules]` in `pyproject.toml` |
@@ -54,6 +54,64 @@ Do **not** trigger on framework-specific work that has its own skill — FastAPI
 3. **Implement** — full type coverage on public APIs; Google-style docstrings only on non-trivial public APIs (don't restate the name).
 4. **Test what the code *does*, not how it does it.** See Testing Philosophy below.
 5. **Validate** — `ruff check`, `ruff format --check`, `ty check`, `pytest -q`. Fix every warning. Zero-warning baseline, not goal.
+
+## Code Organization: Class vs. Functions
+
+Choose the unit of code by cohesion, not by habit. This is the most common shape mistake — either too many loose functions, or too much OOP ceremony. (For deeper layering/coupling decisions, use `python-design-patterns`.)
+
+### When to reach for a class
+
+Use a class when there is a **cohesive unit of state + behavior**:
+
+- Several functions operate on the same data and are almost always called together — bundle them as one object with a **small public surface** and `_private` helper methods.
+- There is state that outlives a single call — a client, a connection, accumulated results, config shared across operations.
+- You'd otherwise thread the same object through many function signatures.
+
+**The signal to watch for:** a pile of module-level `_private_function`s that all take the same core object as their first argument is a class trying to exist. A service class with one or two clear public methods and `_private` helpers reads better and is easier to maintain than that sprawl. This is usually the right call — don't default to loose functions out of reflex.
+
+### When to keep it functions
+
+- The logic is a stateless transformation (input → output).
+- There's no shared state between the functions.
+- A single function does the whole job.
+
+### Clean OOP, not Java-in-Python
+
+Use OOP where it earns readability — do **not** import Java ceremony:
+
+| Avoid | Prefer |
+|-------|--------|
+| Getters/setters (`get_x` / `set_x`) | Plain attributes; `@property` only when access needs real logic |
+| A class with one method | A function |
+| A class with only static methods and no state | A module of functions |
+| Deep inheritance hierarchies | Composition; `Protocol` for interfaces |
+| `AbstractFooFactory` / `FooManager` / `FooHandler` for a task | Name it for what it does; often just a function |
+| Hand-rolled `__init__` / `__repr__` / `__eq__` for data | `@dataclass` (`frozen=True` for value objects) |
+
+- Keep the public surface small: a few clear public methods, the rest `_private`.
+- Prefer composition over inheritance; use `typing.Protocol` for duck-typed interfaces unless you need shared implementation (ABC).
+- A class is not the default unit of code the way it is in Java — free functions are Pythonic. Let cohesion decide.
+- **Locality doesn't make a method.** A helper used by only one class still stays a module function if it touches no instance state — the deciding test is statefulness, not who calls it. Don't promote a stateless helper to a `@staticmethod` just to group it under the class; module scope + a `_` prefix already keeps it private and testable.
+
+**The test:** before adding a class *or* a pattern, ask — *would a senior Python engineer say this is overcomplicated?* If a function does the job, write the function. If cohesive state and behavior belong together, write the class. Don't apply an always-OOP or always-functions rule.
+
+## Wiring: constructor injection, context objects, thin adapters
+
+How dependencies enter your code, once you've decided the units above.
+
+- **Constructor injection, hand-wired.** A class receives its collaborators via `__init__` — no DI framework, no service locator. The object's dependencies are then explicit in its signature, and tests pass fakes straight in.
+- **One typed context object over many accessors.** When many call sites need the same app- or request-scoped singletons, build a single `@dataclass` container once (at startup / FastAPI `lifespan`) and expose it through one accessor, instead of a pile of `get_x()` / `get_y()` functions each reading global state.
+
+  ```python
+  @dataclass
+  class AppContext:            # built once in lifespan, read via one get_context() dependency
+      agent: Agent
+      searcher: DocumentSearcher
+      analytics: AnalyticsService | None
+      chat_service: ChatService
+  ```
+
+- **Entry points stay thin.** Route handlers / CLI commands resolve the service from the context and delegate; the orchestration (history conversion, the run, response assembly) lives in the service method, not the handler.
 
 ## Testing Philosophy
 
@@ -89,9 +147,9 @@ If you find yourself mocking a class you wrote in the same package, the design i
 Break the code, confirm the test fails, then fix. Or, do it systematically with mutation testing:
 
 ```bash
-uv pip install mutmut
-mutmut run --paths-to-mutate src/
-mutmut results
+uv add --group dev mutmut
+uv run mutmut run --paths-to-mutate src/
+uv run mutmut results
 ```
 
 A surviving mutant means a line of code can change without any test failing — usually an untested branch.
@@ -244,7 +302,7 @@ line-length = 100
 select = ['E', 'F', 'I', 'B', 'UP', 'SIM', 'RUF']
 
 [tool.ty.rules]
-strict = true
+all = "error"
 
 [tool.pytest.ini_options]
 minversion = '8.0'
@@ -273,7 +331,7 @@ No `--cov-fail-under` — see Testing Philosophy.
 - **`mypy`** — use `ty`. If a project already uses mypy, ask before migrating; don't silently keep using mypy.
 - **`black` + `isort`** — use `ruff format` + `ruff check --select I`. Single binary, faster, stricter defaults.
 - **`poetry` / `pipenv` / raw `pip`** — use `uv`. 10-100x faster, deterministic locks, hash pinning.
-- **Mutable default arguments.** `def f(x=[]):` is a footgun — use `def f(x=None): x = x or []`.
+- **Mutable default arguments.** `def f(x=[]):` is a footgun — use `def f(x=None): x = [] if x is None else x` (don't write `x = x or []`; it silently discards a legitimately passed empty value).
 - **Bare `except:`** clauses. Either name the exception type or let it propagate.
 - **Hardcoded secrets / config.** Environment variables + `.env` (gitignored).
 - **Deprecated stdlib.** `pathlib` over `os.path`; `dataclasses` over namedtuples for new code; `enum.StrEnum` (3.11+) for string enums.
