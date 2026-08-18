@@ -42,7 +42,7 @@ When creating a new skill:
 
 1. Clarify the skill purpose and trigger conditions.
 2. Choose a short kebab-case name, e.g. `skill-maintainer`.
-3. Create a folder containing `SKILL.md`.
+3. Create a folder containing `SKILL.md`. In **this** repo (`agent_skills`), custom skills live under `skills/<name>/` per the repo's "move skills under skills/" restructure, so a new skill lands at `skills/<name>/SKILL.md`.
 4. Add frontmatter with:
    - `name`: exact skill name
    - `description`: clear trigger-oriented description

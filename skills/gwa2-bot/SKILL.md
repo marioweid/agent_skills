@@ -6,11 +6,11 @@ metadata:
   author: mario.weidner@gmx.de
   version: "1.0.0"
   domain: automation
-  triggers: .au3, AutoIt, ~/Sources/BotsHub, /Users/mario/Sources/BotsHub, BotsHub, GWA2, gwa2, Guild Wars bot, AutoIt bot, farm bot, UseSkillEx, GetMyAgent, AddFarmToFarmMap, MoveAvoidingBodyBlock, LoadSkillTemplate, agent struct, skill template, AdlibRegister, DllStructGetData, Mantids, Raptors, Vaettirs, Corsairs, ResignAndReturnToOutpost, WaitMapLoading
+  triggers: .au3, AutoIt, ~/Sources/BotsHub, BotsHub, GWA2, gwa2, Guild Wars bot, AutoIt bot, farm bot, UseSkillEx, GetMyAgent, AddFarmToFarmMap, MoveAvoidingBodyBlock, LoadSkillTemplate, agent struct, skill template, AdlibRegister, DllStructGetData, Mantids, Raptors, Vaettirs, Corsairs, ResignAndReturnToOutpost, WaitMapLoading
   role: specialist
   scope: implementation
   output-format: code
-  related-skills: debugging-wizard, cli-developer
+  related-skills: systematic-debugging, python-pro
 ---
 
 # GWA2 Bot Specialist

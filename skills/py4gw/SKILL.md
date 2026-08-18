@@ -6,11 +6,11 @@ metadata:
   author: mario.weidner@gmx.de
   version: "0.1.0"
   domain: automation
-  triggers: Py4GW, Py4GWCoreLib, GLOBAL_CACHE, BottingTree, RoutinesBT, BorealBot, VaettirBot, HeroAI, ModularBot, Bot_Factory, Widget Manager, WidgetCatalog, Routines.Movement, AgentArray, ImGui.WindowModule, PyImGui, stubs, native_src, leader_publish, Follow Formations, ~/Sources/Py4GW, /Users/mario/Sources/Py4GW
+  triggers: Py4GW, Py4GWCoreLib, GLOBAL_CACHE, BottingTree, RoutinesBT, BorealBot, VaettirBot, HeroAI, ModularBot, Bot_Factory, Widget Manager, WidgetCatalog, Routines.Movement, AgentArray, ImGui.WindowModule, PyImGui, stubs, native_src, leader_publish, Follow Formations, ~/Sources/Py4GW
   role: specialist
   scope: implementation
   output-format: code
-  related-skills: python-pro, debugging-wizard, gwa2-bot
+  related-skills: python-pro, systematic-debugging, gwa2-bot
 ---
 
 # Py4GW Platform & Bot Specialist

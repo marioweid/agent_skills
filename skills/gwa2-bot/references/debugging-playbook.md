@@ -198,7 +198,7 @@ rg "GetMyAgent\(\)" src/farms/<Name>.au3
 
 Each `GetMyAgent()` is a fresh memory read. The fix is to call it once per loop iteration, store in `$me`, and read fields off the local snapshot.
 
-Same applies to `GetSkillbar()` (each call traverses the offset chain). `GetSkillbar()` has a *cached* variant at `GWA2.au3:352` that built-in caching — read the comment before using.
+Same applies to `GetSkillbar()` (each call traverses the offset chain). `GetSkillbar()` has a *cached* variant with built-in caching — read the comment above the function before using.
 
 ## Inventory full mid-run
 
