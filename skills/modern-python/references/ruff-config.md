@@ -20,6 +20,16 @@ ignore = [
     "ISC001",   # string concat (formatter conflict)
 ]
 
+# Enforce the ≤8 complexity / ≤5 positional-args hard limits (C90 + PLR are
+# already selected via "ALL"; mccabe requires C90 to be selected to take effect).
+[tool.ruff.lint.mccabe]
+max-complexity = 8
+
+[tool.ruff.lint.pylint]
+max-args = 5
+max-branches = 12
+max-returns = 6
+
 [tool.ruff.format]
 quote-style = "double"
 indent-style = "space"

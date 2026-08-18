@@ -64,6 +64,16 @@ ignore = [
     "ISC001",   # implicit string concat (conflicts with formatter)
 ]
 
+# Enforce the ≤8 complexity / ≤5 positional-args hard limits (C90 + PLR are
+# already selected via "ALL"; mccabe requires C90 to be selected to take effect).
+[tool.ruff.lint.mccabe]
+max-complexity = 8
+
+[tool.ruff.lint.pylint]
+max-args = 5
+max-branches = 12
+max-returns = 6
+
 [tool.ruff.lint.per-file-ignores]
 "tests/**/*.py" = [
     "S101",     # assert allowed in tests
