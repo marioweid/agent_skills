@@ -242,7 +242,7 @@ See [Run Methods and Streaming](./AGENTS-CORE.md#run-methods-and-streaming) for 
 
 **Lifecycle hooks** (via `Hooks` or `AbstractCapability`) intercept every stage: `before_run` → `before_model_request` → `before_tool_execute` → `after_tool_execute` → `after_model_request` → `after_run`
 
-**Model string format:** `"provider:model-name"` (e.g., `"openai:gpt-5"`, `"anthropic:claude-sonnet"`, `"google:gemini-3-pro"`)
+**Model string format:** `"provider:model-name"` — use the `"<provider>:<model>"` placeholder and swap in a concrete prefix from the [Model Provider Prefixes](#model-provider-prefixes) table above.
 
 **Output modes:**
 

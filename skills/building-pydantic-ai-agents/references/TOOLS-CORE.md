@@ -11,7 +11,7 @@ import random
 
 from pydantic_ai import Agent, RunContext
 
-agent = Agent('google:gemini-3-pro', deps_type=str)
+agent = Agent('<provider>:<model>', deps_type=str)
 
 
 @agent.tool_plain
@@ -65,7 +65,7 @@ from pydantic_ai import Agent
 from pydantic_ai.mcp import MCPServerStdio
 
 server = MCPServerStdio('python', args=['mcp_server.py'], timeout=10)
-agent = Agent('openai:gpt-5', toolsets=[server])
+agent = Agent('<provider>:<model>', toolsets=[server])
 
 
 async def main():
@@ -90,7 +90,7 @@ from pydantic_ai import Agent
 from pydantic_ai.common_tools.duckduckgo import duckduckgo_search_tool
 
 agent = Agent(
-    'openai:gpt-5',
+    '<provider>:<model>',
     tools=[duckduckgo_search_tool()],
     instructions='Search DuckDuckGo for the given query and return the results.',
 )

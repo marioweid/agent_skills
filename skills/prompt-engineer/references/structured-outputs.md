@@ -129,7 +129,7 @@ import anthropic
 client = anthropic.Anthropic()
 
 response = client.messages.create(
-    model="claude-opus",
+    model="YOUR_MODEL",
     max_tokens=1024,
     messages=[
         {
@@ -160,7 +160,7 @@ from openai import OpenAI
 client = OpenAI()
 
 response = client.chat.completions.create(
-    model="gpt-5",
+    model="YOUR_MODEL",
     response_format={"type": "json_object"},  # Enforces JSON output
     messages=[
         {
@@ -233,7 +233,7 @@ tools = [
 ]
 
 response = client.messages.create(
-    model="claude-opus",
+    model="YOUR_MODEL",
     max_tokens=1024,
     tools=tools,
     tool_choice={"type": "tool", "name": "extract_contact"},  # Force tool use
@@ -296,7 +296,7 @@ tools = [
 ]
 
 response = client.chat.completions.create(
-    model="gpt-5",
+    model="YOUR_MODEL",
     messages=[
         {"role": "user", "content": f"Analyze this feedback: {feedback}"}
     ],

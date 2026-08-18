@@ -37,7 +37,7 @@ Do **not** use this skill for:
 from pydantic_ai import Agent
 
 agent = Agent(
-    'anthropic:claude-sonnet',
+    '<provider>:<model>',
     instructions='Be concise, reply with one sentence.',
 )
 
@@ -48,6 +48,8 @@ The first known use of "hello, world" was in a 1974 textbook about the C program
 """
 ```
 
+> Pydantic AI takes the model as a `"provider:model"` string, so it's swappable across providers (openai, anthropic, google, groq, …). Examples in this skill use `"<provider>:<model>"` as a placeholder — replace it with a real prefix and model, e.g. one from the [Model Provider Prefixes](./references/ARCHITECTURE.md#model-provider-prefixes) table.
+
 ### Add Tools to an Agent
 
 ```python
@@ -56,7 +58,7 @@ import random
 from pydantic_ai import Agent, RunContext
 
 agent = Agent(
-    'google:gemini-3-pro',
+    '<provider>:<model>',
     deps_type=str,
     instructions=(
         "You're a dice game, you should roll the die and see if the number "
@@ -96,7 +98,7 @@ class CityLocation(BaseModel):
     country: str
 
 
-agent = Agent('google:gemini-3-pro', output_type=CityLocation)
+agent = Agent('<provider>:<model>', output_type=CityLocation)
 result = agent.run_sync('Where were the olympics held in 2012?')
 print(result.output)
 #> city='London' country='United Kingdom'
@@ -112,7 +114,7 @@ from datetime import date
 from pydantic_ai import Agent, RunContext
 
 agent = Agent(
-    'openai:gpt-5',
+    '<provider>:<model>',
     deps_type=str,
     instructions="Use the customer's name while replying to them.",
 )
@@ -139,7 +141,7 @@ print(result.output)
 from pydantic_ai import Agent
 from pydantic_ai.models.test import TestModel
 
-my_agent = Agent('openai:gpt-5', instructions='...')
+my_agent = Agent('<provider>:<model>', instructions='...')
 
 
 async def test_my_agent():
@@ -160,7 +162,7 @@ from pydantic_ai import Agent
 from pydantic_ai.capabilities import Thinking, WebSearch
 
 agent = Agent(
-    'anthropic:claude-opus',
+    '<provider>:<model>',
     instructions='You are a research assistant. Be thorough and cite sources.',
     capabilities=[
         Thinking(effort='high'),
@@ -187,7 +189,7 @@ async def log_request(ctx: RunContext[None], request_context: ModelRequestContex
     return request_context
 
 
-agent = Agent('openai:gpt-5', capabilities=[hooks])
+agent = Agent('<provider>:<model>', capabilities=[hooks])
 ```
 
 ### Define Agent from YAML Spec
@@ -198,7 +200,7 @@ Use `Agent.from_file` to load agents from YAML or JSON — no Python agent const
 from pydantic_ai import Agent
 
 # agent.yaml:
-# model: anthropic:claude-opus
+# model: <provider>:<model>
 # instructions: You are a helpful research assistant.
 # capabilities:
 #   - WebSearch
@@ -237,7 +239,7 @@ Load [Architecture and Decision Guide](./references/ARCHITECTURE.md) only when t
 | Comparison Tables | Output modes, model provider prefixes, tool decorators, built-in capabilities, agent methods |
 | Architecture Overview | Execution flow, generic types, construction patterns, lifecycle hooks, model string format |
 
-**Quick reference — model string format:** `"provider:model-name"` (e.g., `"openai:gpt-5"`, `"anthropic:claude-sonnet"`, `"google:gemini-3-pro"`)
+**Quick reference — model string format:** `"provider:model-name"` — examples in this skill use the `"<provider>:<model>"` placeholder; see [Model Provider Prefixes](./references/ARCHITECTURE.md#model-provider-prefixes) for concrete prefixes.
 
 **Quick reference — key agent methods:** `run()`, `run_sync()`, `run_stream()`, `run_stream_sync()`, `run_stream_events()`, `iter()`
 
@@ -253,7 +255,7 @@ Load [Architecture and Decision Guide](./references/ARCHITECTURE.md) only when t
 These are mistakes agents commonly make with Pydantic AI. Getting these wrong produces silent failures or confusing errors.
 
 - **`@agent.tool` requires `RunContext` as first param**; `@agent.tool_plain` must **not** have it. Mixing these up causes runtime errors. Use `tool_plain` when you don't need deps, usage, or messages.
-- **Model strings need the provider prefix**: `'openai:gpt-5'` not `'gpt-5'`. Without the prefix, Pydantic AI can't resolve the provider.
+- **Model strings need the provider prefix**: `'<provider>:<model>'` not `'<model>'`. Without the prefix, Pydantic AI can't resolve the provider.
 - **`TestModel` requires `agent.override()`**: Don't set `agent.model` directly. Always use the context manager: `with agent.override(model=TestModel()):`.
 - **`str` in output_type allows plain text to end the run**: If your union includes `str` (or no `output_type` is set), the model can return plain text instead of structured output. Omit `str` from the union to force tool-based output.
 - **Hook decorator names on `.on` don't repeat `on_`**: Use `hooks.on.run_error` and `hooks.on.model_request_error` — not `hooks.on.on_run_error`.

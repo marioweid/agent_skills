@@ -516,7 +516,7 @@ import json
 client = anthropic.Anthropic()
 
 response = client.messages.create(
-    model="claude-haiku",
+    model="YOUR_MODEL",
     max_tokens=1024,
     messages=[
         {"role": "user", "content": f"Extract the invoice fields from:\n{invoice_text}"},
@@ -557,7 +557,7 @@ Images are content blocks alongside text in the user turn:
 
 ```python
 response = client.messages.create(
-    model="claude-opus",
+    model="YOUR_MODEL",
     max_tokens=1024,
     messages=[
         {

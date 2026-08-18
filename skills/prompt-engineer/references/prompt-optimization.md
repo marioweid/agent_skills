@@ -36,7 +36,7 @@ Before optimizing, establish clear metrics and baseline performance.
 
 ### Prompt Version: v1.0.0
 ### Date: YYYY-MM-DD
-### Model: claude-opus
+### Model: YOUR_MODEL
 
 ### Task Definition
 [What should the prompt accomplish?]
@@ -314,7 +314,7 @@ Sentiment:
 ```python
 import tiktoken
 
-def compare_token_usage(prompt_v1: str, prompt_v2: str, model: str = "gpt-5") -> dict:
+def compare_token_usage(prompt_v1: str, prompt_v2: str, model: str = "YOUR_MODEL") -> dict:
     """Compare token usage between two prompt versions."""
     enc = tiktoken.encoding_for_model(model)
 

@@ -504,7 +504,7 @@ def test_injection_resistance(system_prompt: str) -> dict:
 ```python
 # Claude uses a separate system parameter
 response = client.messages.create(
-    model="claude-opus",
+    model="YOUR_MODEL",
     system=SYSTEM_PROMPT,  # Separate from messages
     messages=[
         {"role": "user", "content": user_input}
@@ -522,7 +522,7 @@ Claude-specific tips:
 ```python
 # OpenAI includes system as first message
 response = client.chat.completions.create(
-    model="gpt-5",
+    model="YOUR_MODEL",
     messages=[
         {"role": "system", "content": SYSTEM_PROMPT},
         {"role": "user", "content": user_input}
