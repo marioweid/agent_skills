@@ -94,16 +94,16 @@ uv tool upgrade ruff
 
 ```bash
 # Install Python version
-uv python install 3.12
+uv python install 3.13
 
 # List available versions
 uv python list
 
 # Pin project to Python version
-uv python pin 3.12
+uv python pin 3.13
 
 # Use specific version
-uv run --python 3.11 pytest
+uv run --python 3.13 pytest
 ```
 
 ## Script Commands (PEP 723)
@@ -137,7 +137,7 @@ uv run uvicorn myapp:app
 ```bash
 uv init --package mylib
 cd mylib
-uv add --group dev ruff pytest pytest-cov
+uv add --group dev ruff pytest hypothesis
 uv add --group docs sphinx
 uv sync --all-groups
 uv run pytest

@@ -1,28 +1,32 @@
 # Testing with pytest
 
-Configuration and best practices for pytest with coverage enforcement.
+pytest configuration for a scaffolded project. This covers *setup*; for testing
+*philosophy* — test behavior not implementation, cover edges/errors, mock only
+boundaries, and why mutation testing (not code coverage %) is how you check tests
+actually catch bugs — see `python-pro`'s Testing Philosophy. This skill does not
+use code coverage.
 
 ## Setup
 
 Add test dependencies:
 
 ```bash
-uv add --group test pytest pytest-cov hypothesis
+uv add --group test pytest hypothesis mutmut
 ```
 
 ## pyproject.toml Configuration
 
+Note: pytest reads `[tool.pytest.ini_options]`, not `[tool.pytest]` — the latter
+is silently ignored.
+
 ```toml
-[tool.pytest]
+[tool.pytest.ini_options]
 testpaths = ["tests"]
 pythonpath = ["src"]
 addopts = [
     "-ra",                      # Show summary of all test outcomes
     "--strict-markers",         # Error on unknown markers
     "--strict-config",          # Error on config issues
-    "--cov=myproject",          # Coverage for package
-    "--cov-report=term-missing", # Show missing lines
-    "--cov-fail-under=80",      # Minimum coverage
 ]
 markers = [
     "slow: marks tests as slow",
@@ -32,25 +36,6 @@ filterwarnings = [
     "error",                    # Treat warnings as errors
     "ignore::DeprecationWarning:third_party.*",
 ]
-
-[tool.coverage.run]
-branch = true
-source = ["src/myproject"]
-omit = [
-    "*/__main__.py",
-    "*/conftest.py",
-]
-
-[tool.coverage.report]
-exclude_lines = [
-    "pragma: no cover",
-    "if TYPE_CHECKING:",
-    "if __name__ == .__main__.:",
-    "raise NotImplementedError",
-    "@abstractmethod",
-]
-fail_under = 80
-show_missing = true
 ```
 
 ## Project Structure
@@ -98,19 +83,18 @@ uv run pytest -x
 uv run pytest --lf
 ```
 
-## Coverage Commands
+## Checking Tests Actually Catch Bugs (mutation testing)
+
+Don't measure code coverage. A line being executed says nothing about whether a
+test would fail if that line were wrong. Use mutation testing instead — it
+changes the code and checks a test breaks.
 
 ```bash
-# Run with coverage
-uv run pytest --cov=myproject
+# Run mutation testing over the source
+uv run mutmut run --paths-to-mutate src/
 
-# Generate HTML report
-uv run pytest --cov=myproject --cov-report=html
-open htmlcov/index.html
-
-# Coverage without running tests (use existing data)
-uv run coverage report
-uv run coverage html
+# Review surviving mutants (code that changed with no test failing)
+uv run mutmut results
 ```
 
 ## Writing Tests
@@ -254,17 +238,12 @@ def test_unix_feature():
 - name: Run tests
   run: |
     uv sync --group test
-    uv run pytest --cov-report=xml
+    uv run pytest
 
 - name: Security audit
   run: |
     uv sync --group audit
     uv run pip-audit
-
-- name: Upload coverage
-  uses: codecov/codecov-action@<sha>  # <latest> https://github.com/codecov/codecov-action/releases
-  with:
-    files: ./coverage.xml
 ```
 
 ## Makefile Target
@@ -275,10 +254,9 @@ def test_unix_feature():
 test:
 	uv run pytest
 
-test-cov:
-	uv run pytest --cov-report=html
-	open htmlcov/index.html
+test-mutation:
+	uv run mutmut run --paths-to-mutate src/
 
 test-fast:
-	uv run pytest -x -q --no-cov
+	uv run pytest -x -q
 ```

@@ -7,6 +7,8 @@ description: Configures Python projects with modern tooling (uv, ruff, ty). Use 
 
 Guide for modern Python tooling and best practices, based on [trailofbits/cookiecutter-python](https://github.com/trailofbits/cookiecutter-python).
 
+**Scope — this vs. `python-pro`:** this skill owns *project setup* — scaffolding, `pyproject.toml`, tool config, migration, standalone scripts. It stops at the project boundary. For how to *write* the code that goes in the project — types, async, class-vs-function, error handling, and the testing philosophy this skill defers to — use `python-pro`.
+
 ## When to Use This Skill
 
 - Creating a new Python project or package
@@ -28,7 +30,7 @@ Guide for modern Python tooling and best practices, based on [trailofbits/cookie
 | `[tool.ty]` python-version | `[tool.ty.environment]` python-version |
 | `uv pip install` | `uv add` and `uv sync` |
 | Editing pyproject.toml manually to add deps | `uv add <pkg>` / `uv remove <pkg>` |
-| `hatchling` build backend | `uv_build` (simpler, sufficient for most cases) |
+| `hatchling` for pure-Python packages | `uv_build` (simpler, sufficient). Keep `hatchling` for native/compiled extensions |
 | Poetry | uv (faster, simpler, better ecosystem integration) |
 | requirements.txt | PEP 723 for scripts, pyproject.toml for projects |
 | mypy / pyright | ty (faster, from Astral team) |
@@ -66,7 +68,7 @@ What are you doing?
 | **uv** | Package/dependency management | pip, virtualenv, pip-tools, pipx, pyenv |
 | **ruff** | Linting AND formatting | flake8, black, isort, pyupgrade, pydocstyle |
 | **ty** | Type checking | mypy, pyright (faster alternative) |
-| **pytest** | Testing with coverage | unittest |
+| **pytest** | Testing | unittest |
 | **prek** | Pre-commit hooks ([setup](./references/prek.md)) | pre-commit (faster, Rust-native) |
 
 ### Security Tools
@@ -139,31 +141,31 @@ Key sections:
 [project]
 name = "myproject"
 version = "0.1.0"
-requires-python = ">=3.11"
+requires-python = ">=3.13"
 dependencies = []
 
 [dependency-groups]
 dev = [{include-group = "lint"}, {include-group = "test"}, {include-group = "audit"}]
 lint = ["ruff", "ty"]
-test = ["pytest", "pytest-cov"]
+test = ["pytest", "hypothesis", "mutmut"]
 audit = ["pip-audit"]
 
 [tool.ruff]
 line-length = 100
-target-version = "py311"
+target-version = "py313"
 
 [tool.ruff.lint]
 select = ["ALL"]
 ignore = ["D", "COM812", "ISC001"]
 
-[tool.pytest]
-addopts = ["--cov=myproject", "--cov-fail-under=80"]
+[tool.pytest.ini_options]
+addopts = ["-ra", "--strict-markers"]
 
 [tool.ty.terminal]
 error-on-warning = true
 
 [tool.ty.environment]
-python-version = "3.11"
+python-version = "3.13"
 
 [tool.ty.rules]
 # Strict from day 1 for new projects
@@ -303,7 +305,7 @@ See [uv-commands.md](./references/uv-commands.md) for complete reference.
 ```toml
 [dependency-groups]
 dev = ["ruff", "ty"]
-test = ["pytest", "pytest-cov", "hypothesis"]
+test = ["pytest", "hypothesis", "mutmut"]
 docs = ["sphinx", "myst-parser"]
 ```
 
@@ -312,10 +314,10 @@ Install with: `uv sync --group dev --group test`
 ## Best Practices Checklist
 
 - [ ] Use `src/` layout for packages
-- [ ] Set `requires-python = ">=3.11"`
+- [ ] Set `requires-python = ">=3.13"` (a lower floor is fine for a library that intentionally supports older runtimes)
 - [ ] Configure ruff with `select = ["ALL"]` and explicit ignores
 - [ ] Use ty for type checking
-- [ ] Enforce test coverage minimum (80%+)
+- [ ] Test behavior, edges, and error paths — not code coverage %; use mutation testing (`mutmut`) to verify tests catch bugs. See `python-pro`'s Testing Philosophy
 - [ ] Use dependency groups instead of extras for dev tools
 - [ ] Add `uv.lock` to version control
 - [ ] Use PEP 723 for standalone scripts
@@ -326,7 +328,7 @@ Install with: `uv sync --group dev --group test`
 - [pyproject.md](./references/pyproject.md) - Complete pyproject.toml reference
 - [uv-commands.md](./references/uv-commands.md) - uv command reference
 - [ruff-config.md](./references/ruff-config.md) - Ruff linting/formatting configuration
-- [testing.md](./references/testing.md) - pytest and coverage setup
+- [testing.md](./references/testing.md) - pytest and mutation-testing setup
 - [pep723-scripts.md](./references/pep723-scripts.md) - PEP 723 inline script metadata
 - [prek.md](./references/prek.md) - Fast pre-commit hooks with prek
 - [security-setup.md](./references/security-setup.md) - Security hooks and dependency scanning

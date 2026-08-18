@@ -217,6 +217,23 @@ async def test_async_function() -> None:
 
 ## Async Testing
 
+`@pytest.mark.asyncio` and async fixtures need a plugin — pytest does not run
+coroutine tests on its own. Add `pytest-asyncio` (or `anyio`) and set a mode:
+
+```bash
+uv add --group test pytest-asyncio
+```
+
+```toml
+[tool.pytest.ini_options]
+asyncio_mode = "auto"   # run async tests without decorating each one
+```
+
+With `asyncio_mode = "auto"` the `@pytest.mark.asyncio` markers below become
+optional; use `asyncio_mode = "strict"` (the default) if you prefer to mark each
+test explicitly. The same applies to the async mock example in the Mocking
+section above.
+
 ```python
 import pytest
 import asyncio
@@ -281,29 +298,23 @@ def test_integration() -> None:
 # Run with: pytest -m "not slow"
 ```
 
-## Test Coverage
+## Don't measure code coverage — check tests catch bugs (mutation testing)
+
+Code coverage measures which lines ran, not whether a test would fail if the code
+were wrong. Don't gate or target on it. Use mutation testing instead.
+
+```bash
+# Mutation testing: change the code, confirm a test breaks
+uv run mutmut run --paths-to-mutate src/
+uv run mutmut results   # surviving mutants = untested behavior
+```
 
 ```python
-# Run with coverage
-# pytest --cov=myapp --cov-report=html --cov-report=term
-
-# conftest.py - coverage configuration
-def pytest_configure(config):
-    config.addinivalue_line(
-        "markers", "unit: mark test as unit test"
-    )
-
-# pytest.ini or pyproject.toml
+# pyproject.toml — pytest config, no coverage
 """
 [tool.pytest.ini_options]
-minversion = "7.0"
-addopts = [
-    "--cov=myapp",
-    "--cov-report=term-missing",
-    "--cov-fail-under=90",
-    "-ra",
-    "--strict-markers",
-]
+minversion = "8.0"
+addopts = ["-ra", "--strict-markers"]
 testpaths = ["tests"]
 """
 ```

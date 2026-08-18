@@ -9,7 +9,7 @@ Add to `pyproject.toml`:
 ```toml
 [tool.ruff]
 line-length = 100
-target-version = "py311"
+target-version = "py313"
 src = ["src"]
 
 [tool.ruff.lint]

@@ -91,5 +91,5 @@ This is a layering violation. The service layer must not import from handlers. I
 
 ## Related Skills
 
-- [python-testing-patterns](../python-testing-patterns/SKILL.md) — Test each layer in isolation using the dependency injection structure established here
-- [python-project-setup](../python-project-setup/SKILL.md) — Set up project structure and tooling that enforces layer boundaries from the start
+- [python-pro](../python-pro/SKILL.md) — Write the code that fills these layers: type-safe interfaces, async correctness, and the testing discipline (test each layer in isolation using the dependency injection structure established here)
+- [modern-python](../modern-python/SKILL.md) — Set up project structure and tooling (uv, ruff, ty) that enforces layer boundaries from the start
