@@ -21,10 +21,13 @@ All methods accept `(message, attributes?, options?)`. Options can include `{ ta
 ### Callback-based (auto-closes)
 
 ```typescript
-await logfire.span('Processing order', { order_id }, {}, async () => {
-    const items = await fetchItems(order_id)
-    logfire.info('Fetched items', { count: items.length })
-    return processItems(items)
+await logfire.span('Processing order', {
+    attributes: { order_id },
+    callback: async () => {
+        const items = await fetchItems(order_id)
+        logfire.info('Fetched items', { count: items.length })
+        return processItems(items)
+    },
 })
 ```
 
@@ -52,7 +55,7 @@ try {
 }
 ```
 
-`reportError` automatically extracts stack traces and error details into structured span attributes.
+`reportError` automatically extracts stack traces and error details into structured span attributes. Verify the exact name and signature against current `@pydantic/logfire-node` docs.
 
 ## Configuration
 

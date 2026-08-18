@@ -15,12 +15,12 @@ logfire.configure()
 Launch:
 
 ```bash
-node --require ./instrumentation.js app.js
-# or with ts-node:
-npx ts-node --require ./instrumentation.ts app.ts
+node --import ./instrumentation.js app.js
+# or with tsx (TypeScript):
+npx tsx --import ./instrumentation.ts app.ts
 ```
 
-The SDK auto-instruments common libraries (http, fetch, express, etc.) when loaded before the app via `--require`.
+The SDK auto-instruments common libraries (http, fetch, express, etc.) when loaded before the app via `--import`. Call `logfire.shutdown()` before the process exits to flush buffered spans.
 
 ## Cloudflare Workers
 
@@ -53,6 +53,8 @@ OTEL_EXPORTER_OTLP_TRACES_ENDPOINT=https://logfire-api.pydantic.dev/v1/traces
 OTEL_EXPORTER_OTLP_METRICS_ENDPOINT=https://logfire-api.pydantic.dev/v1/metrics
 OTEL_EXPORTER_OTLP_HEADERS=Authorization=<your-write-token>
 ```
+
+New projects are region-scoped: use your project's region host (`logfire-us.pydantic.dev` or `logfire-eu.pydantic.dev`) instead of the generic `logfire-api.pydantic.dev`.
 
 Optionally use the `logfire` package for manual spans in server components and API routes:
 

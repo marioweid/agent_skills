@@ -18,6 +18,8 @@ Detailed examples for querying Logfire data programmatically.
 logfire read-tokens --project <organization>/<project> create
 ```
 
+Verify the exact subcommand syntax against the current `logfire` CLI (`logfire read-tokens --help`).
+
 Store the token in an environment variable:
 
 ```bash
