@@ -36,7 +36,7 @@ Before optimizing, establish clear metrics and baseline performance.
 
 ### Prompt Version: v1.0.0
 ### Date: YYYY-MM-DD
-### Model: claude-opus-4-5-20251101
+### Model: claude-opus
 
 ### Task Definition
 [What should the prompt accomplish?]
@@ -314,7 +314,7 @@ Sentiment:
 ```python
 import tiktoken
 
-def compare_token_usage(prompt_v1: str, prompt_v2: str, model: str = "gpt-4") -> dict:
+def compare_token_usage(prompt_v1: str, prompt_v2: str, model: str = "gpt-5") -> dict:
     """Compare token usage between two prompt versions."""
     enc = tiktoken.encoding_for_model(model)
 
@@ -555,6 +555,6 @@ Revert to v2.0.0 if accuracy drops below 90% in production.
 
 ## Related Skills
 
-- **Evaluation Frameworks** - Measuring prompt performance systematically
-- **Fine-Tuning Expert** - When optimization hits limits
-- **Cost Engineer** - Token and latency optimization at scale
+- **Evaluation Frameworks** (`references/evaluation-frameworks.md`) - Measuring prompt performance systematically
+- **building-pydantic-ai-agents** - Building agents around optimized prompts
+- **python-pro** - Implementing optimization and token-measurement tooling in Python

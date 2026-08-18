@@ -10,7 +10,7 @@ metadata:
   role: expert
   scope: design
   output-format: document
-  related-skills: test-master, rag-architect, debugging-wizard
+  related-skills: building-pydantic-ai-agents, python-pro
 ---
 
 # Prompt Engineer
@@ -43,7 +43,7 @@ Load detailed guidance based on context:
 
 | Topic | Reference | Load When |
 |-------|-----------|-----------|
-| Prompt Patterns | `references/prompt-patterns.md` | Zero-shot, few-shot, chain-of-thought, ReAct |
+| Prompt Patterns | `references/prompt-patterns.md` | Zero-shot, few-shot, chain-of-thought, ReAct, prefilling, vision/multimodal |
 | Optimization | `references/prompt-optimization.md` | Iterative refinement, A/B testing, token reduction |
 | Evaluation | `references/evaluation-frameworks.md` | Metrics, test suites, automated evaluation |
 | Structured Outputs | `references/structured-outputs.md` | JSON mode, function calling, schema design |
@@ -131,6 +131,6 @@ When delivering prompt work, provide:
 
 ## Coverage Note
 
-Reference files cover major prompting techniques (zero-shot, few-shot, CoT, ReAct, tree-of-thoughts), structured output patterns (JSON mode, function calling), context management (attention budgets, degradation mitigation, optimization), and model-specific guidance for GPT-4, Claude, and Gemini families. Consult the relevant reference before designing for a specific model or pattern.
+Reference files cover major prompting techniques (zero-shot, few-shot, CoT, ReAct, tree-of-thoughts), structured output patterns (JSON mode, function calling), context management (attention budgets, degradation mitigation, optimization), and model-specific guidance for GPT, Claude, and Gemini families. Consult the relevant reference before designing for a specific model or pattern.
 
 [Documentation](https://jeffallan.github.io/claude-skills/skills/data-ml/prompt-engineer/)
