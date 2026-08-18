@@ -162,25 +162,25 @@ Need deterministic, fast tests?
 
 | Provider | Prefix | Example |
 |----------|--------|---------|
-| OpenAI | `openai:` | `openai:gpt-5.2` |
-| Anthropic | `anthropic:` | `anthropic:claude-sonnet-4-6` |
-| Google (Gemini API) | `google:` | `google:gemini-3-pro-preview` |
-| Google Cloud | `google-cloud:` | `google-cloud:gemini-3-pro-preview` |
+| OpenAI | `openai:` | `openai:gpt-5` |
+| Anthropic | `anthropic:` | `anthropic:claude-sonnet` |
+| Google (Gemini API) | `google:` | `google:gemini-3-pro` |
+| Google Cloud | `google-cloud:` | `google-cloud:gemini-3-pro` |
 | Groq | `groq:` | `groq:llama-3.3-70b-versatile` |
 | Mistral | `mistral:` | `mistral:mistral-large-latest` |
 | Cohere | `cohere:` | `cohere:command-r-plus-08-2024` |
-| AWS Bedrock | `bedrock:` | `bedrock:anthropic.claude-sonnet-4-6` |
-| Azure | `azure:` | `azure:gpt-5.2` |
-| OpenRouter | `openrouter:` | `openrouter:anthropic/claude-sonnet-4-6` |
+| AWS Bedrock | `bedrock:` | `bedrock:anthropic.claude-sonnet` |
+| Azure | `azure:` | `azure:gpt-5` |
+| OpenRouter | `openrouter:` | `openrouter:anthropic/claude-sonnet` |
 | xAI | `xai:` | `xai:grok-4.3` |
 | DeepSeek | `deepseek:` | `deepseek:deepseek-chat` |
 | Fireworks | `fireworks:` | `fireworks:accounts/fireworks/models/llama-v3p3-70b-instruct` |
 | Together | `together:` | `together:meta-llama/Meta-Llama-3.1-70B-Instruct-Turbo` |
 | Ollama (local) | `ollama:` | `ollama:llama3.2` |
-| GitHub Models | `github:` | `github:openai/gpt-5.2` |
+| GitHub Models | `github:` | `github:openai/gpt-5` |
 | Hugging Face | `huggingface:` | `huggingface:meta-llama/Llama-3.3-70B-Instruct` |
 | Cerebras | `cerebras:` | `cerebras:llama-4-scout-17b-16e-instruct` |
-| Heroku | `heroku:` | `heroku:claude-sonnet-4-6` |
+| Heroku | `heroku:` | `heroku:claude-sonnet` |
 
 **Additional prefixes:** `litellm:`, `nebius:`, `ovhcloud:`, `alibaba:`, `sambanova:`, `vercel:`, `outlines:`, `moonshotai:`. For truly custom providers, subclass `Model` or use `OpenAIChatModel` with a custom `base_url`.
 
@@ -242,7 +242,7 @@ See [Run Methods and Streaming](./AGENTS-CORE.md#run-methods-and-streaming) for 
 
 **Lifecycle hooks** (via `Hooks` or `AbstractCapability`) intercept every stage: `before_run` → `before_model_request` → `before_tool_execute` → `after_tool_execute` → `after_model_request` → `after_run`
 
-**Model string format:** `"provider:model-name"` (e.g., `"openai:gpt-5.2"`, `"anthropic:claude-sonnet-4-6"`, `"google:gemini-3-pro-preview"`)
+**Model string format:** `"provider:model-name"` (e.g., `"openai:gpt-5"`, `"anthropic:claude-sonnet"`, `"google:gemini-3-pro"`)
 
 **Output modes:**
 

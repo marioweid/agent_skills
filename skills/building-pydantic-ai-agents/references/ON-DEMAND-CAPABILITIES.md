@@ -49,7 +49,7 @@ def lookup_refund_policy(order_id: str) -> str:
 
 
 agent = Agent(
-    'anthropic:claude-sonnet-4-6',
+    'anthropic:claude-sonnet',
     instructions='Answer as a support assistant.',
     capabilities=[refunds],
 )
