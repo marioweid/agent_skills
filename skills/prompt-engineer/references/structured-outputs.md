@@ -129,7 +129,7 @@ import anthropic
 client = anthropic.Anthropic()
 
 response = client.messages.create(
-    model="claude-opus-4-5-20251101",
+    model="YOUR_MODEL",
     max_tokens=1024,
     messages=[
         {
@@ -160,7 +160,7 @@ from openai import OpenAI
 client = OpenAI()
 
 response = client.chat.completions.create(
-    model="gpt-4-turbo-preview",
+    model="YOUR_MODEL",
     response_format={"type": "json_object"},  # Enforces JSON output
     messages=[
         {
@@ -233,7 +233,7 @@ tools = [
 ]
 
 response = client.messages.create(
-    model="claude-opus-4-5-20251101",
+    model="YOUR_MODEL",
     max_tokens=1024,
     tools=tools,
     tool_choice={"type": "tool", "name": "extract_contact"},  # Force tool use
@@ -260,50 +260,53 @@ from openai import OpenAI
 
 client = OpenAI()
 
-functions = [
+tools = [
     {
-        "name": "analyze_sentiment",
-        "description": "Analyze sentiment of customer feedback",
-        "parameters": {
-            "type": "object",
-            "properties": {
-                "sentiment": {
-                    "type": "string",
-                    "enum": ["positive", "negative", "neutral", "mixed"]
+        "type": "function",
+        "function": {
+            "name": "analyze_sentiment",
+            "description": "Analyze sentiment of customer feedback",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "sentiment": {
+                        "type": "string",
+                        "enum": ["positive", "negative", "neutral", "mixed"]
+                    },
+                    "confidence": {
+                        "type": "number",
+                        "minimum": 0,
+                        "maximum": 1
+                    },
+                    "key_phrases": {
+                        "type": "array",
+                        "items": {"type": "string"},
+                        "description": "Phrases that indicate sentiment"
+                    },
+                    "topics": {
+                        "type": "array",
+                        "items": {"type": "string"},
+                        "description": "Main topics discussed"
+                    }
                 },
-                "confidence": {
-                    "type": "number",
-                    "minimum": 0,
-                    "maximum": 1
-                },
-                "key_phrases": {
-                    "type": "array",
-                    "items": {"type": "string"},
-                    "description": "Phrases that indicate sentiment"
-                },
-                "topics": {
-                    "type": "array",
-                    "items": {"type": "string"},
-                    "description": "Main topics discussed"
-                }
-            },
-            "required": ["sentiment", "confidence"]
+                "required": ["sentiment", "confidence"]
+            }
         }
     }
 ]
 
 response = client.chat.completions.create(
-    model="gpt-4-turbo-preview",
+    model="YOUR_MODEL",
     messages=[
         {"role": "user", "content": f"Analyze this feedback: {feedback}"}
     ],
-    functions=functions,
-    function_call={"name": "analyze_sentiment"}  # Force specific function
+    tools=tools,
+    tool_choice={"type": "function", "function": {"name": "analyze_sentiment"}}  # Force specific tool
 )
 
-# Parse function call
-fn_call = response.choices[0].message.function_call
-result = json.loads(fn_call.arguments)
+# Parse tool call
+tool_call = response.choices[0].message.tool_calls[0]
+result = json.loads(tool_call.function.arguments)
 ```
 
 ---
@@ -420,8 +423,7 @@ result = json.loads(fn_call.arguments)
 ### Pydantic Validation (Python)
 
 ```python
-from pydantic import BaseModel, Field, validator
-from typing import Optional, List
+from pydantic import BaseModel, Field, ValidationError, field_validator
 from enum import Enum
 
 class Severity(str, Enum):
@@ -435,21 +437,23 @@ class CodeIssue(BaseModel):
     type: str = Field(..., pattern="^(bug|security|performance|style)$")
     location: str
     description: str = Field(..., min_length=10, max_length=500)
-    suggestion: Optional[str] = None
+    suggestion: str | None = None
 
-    @validator('location')
-    def validate_location(cls, v):
+    @field_validator('location')
+    @classmethod
+    def validate_location(cls, v: str) -> str:
         if ':' not in v and '(' not in v:
             raise ValueError('Location must be file:line or function()')
         return v
 
 class CodeAnalysis(BaseModel):
     summary: str = Field(..., max_length=200)
-    issues: List[CodeIssue]
+    issues: list[CodeIssue]
     quality_score: int = Field(..., ge=1, le=10)
 
-    @validator('issues')
-    def critical_issues_first(cls, v):
+    @field_validator('issues')
+    @classmethod
+    def critical_issues_first(cls, v: list[CodeIssue]) -> list[CodeIssue]:
         return sorted(v, key=lambda x: list(Severity).index(x.severity))
 
 # Usage
@@ -715,6 +719,5 @@ Response (JSON array only):"""
 
 ## Related Skills
 
-- **API Designer** - Schema design for APIs
-- **Data Engineer** - Data validation pipelines
-- **RAG Architect** - Structured extraction for retrieval
+- **python-pro** - Pydantic v2 models and validation pipelines in Python
+- **building-pydantic-ai-agents** - Structured output (`output_type`) for agents

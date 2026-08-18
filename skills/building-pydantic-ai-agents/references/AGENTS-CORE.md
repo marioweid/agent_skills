@@ -8,7 +8,7 @@ Read this file when the user needs the core `Agent` workflow: creating agents, c
 from pydantic_ai import Agent
 
 agent = Agent(
-    'anthropic:claude-sonnet-4-6',
+    '<provider>:<model>',
     instructions='Be concise, reply with one sentence.',
 )
 
@@ -31,7 +31,7 @@ class CityLocation(BaseModel):
     country: str
 
 
-agent = Agent('google:gemini-3-flash-preview', output_type=CityLocation)
+agent = Agent('<provider>:<model>', output_type=CityLocation)
 result = agent.run_sync('Where were the olympics held in 2012?')
 print(result.output)
 ```
@@ -50,7 +50,7 @@ Use `deps_type=...` plus `RunContext[...]` when tools or instructions need app s
 ```python
 from pydantic_ai import Agent, RunContext
 
-agent = Agent('openai:gpt-5.2', deps_type=str)
+agent = Agent('<provider>:<model>', deps_type=str)
 
 
 @agent.instructions
@@ -65,7 +65,7 @@ Use `@agent.tool` when the tool needs `RunContext`. Use `@agent.tool_plain` when
 Use YAML or JSON specs when configuration should live outside Python code.
 
 ```yaml
-model: anthropic:claude-opus-4-6
+model: <provider>:<model>
 instructions: "You are helping {{user_name}} with research."
 capabilities:
   - WebSearch
@@ -92,13 +92,7 @@ Template strings are part of the spec flow, so route template-string questions h
 
 ## Choose or Configure Models
 
-Model strings use the `"provider:model-name"` format.
-
-Examples:
-
-- `openai:gpt-5.2`
-- `anthropic:claude-sonnet-4-6`
-- `google:gemini-3-pro-preview`
+Model strings use the `"provider:model-name"` format — the placeholder `"<provider>:<model>"` stands in for a real prefix plus model name. See [Model Provider Prefixes](./ARCHITECTURE.md#model-provider-prefixes) for concrete prefixes.
 
 Use a model instance instead of a string when the user needs provider-specific constructor arguments.
 
@@ -120,7 +114,7 @@ from collections.abc import AsyncIterable
 
 from pydantic_ai import Agent, AgentStreamEvent, FunctionToolCallEvent, RunContext
 
-agent = Agent('openai:gpt-5.2')
+agent = Agent('<provider>:<model>')
 
 
 async def stream_handler(ctx: RunContext[None], events: AsyncIterable[AgentStreamEvent]):
@@ -144,8 +138,8 @@ from pydantic_ai.models.fallback import FallbackModel
 from pydantic_ai.models.openai import OpenAIChatModel
 
 fallback = FallbackModel(
-    OpenAIChatModel('gpt-5.2'),
-    AnthropicModel('claude-sonnet-4-6'),
+    OpenAIChatModel('gpt-5'),
+    AnthropicModel('claude-sonnet'),
 )
 
 agent = Agent(fallback)

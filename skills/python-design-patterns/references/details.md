@@ -326,13 +326,21 @@ service = UserService(
 # BAD: Leaking ORM model to API
 @app.get("/users/{id}")
 def get_user(id: str) -> UserModel:  # SQLAlchemy model
-    return db.query(UserModel).get(id)
+    return db.get(UserModel, id)
 
 # GOOD: Use response schemas
+from pydantic import BaseModel
+
+class UserResponse(BaseModel):
+    model_config = {"from_attributes": True}  # build the schema from an ORM object
+
+    id: str
+    email: str
+
 @app.get("/users/{id}")
 def get_user(id: str) -> UserResponse:
-    user = db.query(UserModel).get(id)
-    return UserResponse.from_orm(user)
+    user = db.get(UserModel, id)  # SQLAlchemy 2.0: Session.get(Model, pk)
+    return UserResponse.model_validate(user)
 ```
 
 **Don't mix I/O with business logic:**

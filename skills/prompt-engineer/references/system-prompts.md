@@ -504,7 +504,7 @@ def test_injection_resistance(system_prompt: str) -> dict:
 ```python
 # Claude uses a separate system parameter
 response = client.messages.create(
-    model="claude-opus-4-5-20251101",
+    model="YOUR_MODEL",
     system=SYSTEM_PROMPT,  # Separate from messages
     messages=[
         {"role": "user", "content": user_input}
@@ -522,7 +522,7 @@ Claude-specific tips:
 ```python
 # OpenAI includes system as first message
 response = client.chat.completions.create(
-    model="gpt-4-turbo-preview",
+    model="YOUR_MODEL",
     messages=[
         {"role": "system", "content": SYSTEM_PROMPT},
         {"role": "user", "content": user_input}
@@ -539,6 +539,6 @@ OpenAI-specific tips:
 
 ## Related Skills
 
-- **Prompt Patterns** - Combining system prompts with few-shot examples
-- **Guardrails Engineer** - Advanced safety implementations
-- **LLM Architect** - Multi-agent system prompt design
+- **Prompt Patterns** (`references/prompt-patterns.md`) - Combining system prompts with few-shot examples
+- **building-pydantic-ai-agents** - System prompts and multi-agent orchestration in Pydantic AI
+- **python-pro** - Implementing guardrails and injection tests in Python

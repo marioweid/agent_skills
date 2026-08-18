@@ -89,7 +89,7 @@ For legacy codebases with many type errors, start lenient:
 error-on-warning = true
 
 [tool.ty.environment]
-python-version = "3.11"
+python-version = "3.13"
 
 [tool.ty.rules]
 # Start with these ignored for legacy codebases

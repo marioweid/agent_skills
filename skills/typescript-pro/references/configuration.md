@@ -240,11 +240,11 @@ export function createUser(name: string, email: string): User {
   "exclude": ["**/*.test.ts", "**/*.spec.ts"]
 }
 
-// tsconfig.test.json (testing)
+// tsconfig.test.json (testing with vitest)
 {
   "extends": "./tsconfig.json",
   "compilerOptions": {
-    "types": ["jest", "node"],
+    "types": ["vitest/globals", "node"],
     "esModuleInterop": true
   },
   "include": ["src/**/*.test.ts", "src/**/*.spec.ts"]

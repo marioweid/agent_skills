@@ -499,8 +499,98 @@ Action: search("specific query based on reasoning")
 
 ---
 
+## Prefilling the Assistant Response
+
+**When to use:** Force a specific output format, skip preamble ("Here is the JSON..."), or steer tone. Seed the start of the assistant turn and the model continues from it.
+
+**When NOT to use:** On current frontier Claude models. Assistant-turn prefill returns a 400 on Claude Opus/Sonnet 4.6 and later (including Opus 5, Sonnet 5); use structured outputs (`output_config.format`) or a system-prompt instruction instead — see `references/structured-outputs.md`. Prefill still works on smaller tiers such as Claude Haiku.
+
+### Claude Prefill Example
+
+The prefill is passed as an `assistant` message; Claude continues from it (the prefill text is not echoed back, so prepend it when reconstructing the output):
+
+```python
+import anthropic
+import json
+
+client = anthropic.Anthropic()
+
+response = client.messages.create(
+    model="YOUR_MODEL",
+    max_tokens=1024,
+    messages=[
+        {"role": "user", "content": f"Extract the invoice fields from:\n{invoice_text}"},
+        {"role": "assistant", "content": "{"},  # prefill forces a JSON object, no preamble
+    ],
+)
+
+raw = "{" + response.content[0].text  # prepend the prefill to reconstruct the object
+data = json.loads(raw)
+```
+
+Notes:
+- A `{` prefill reliably suppresses "Here is the JSON..." preamble.
+- Don't end the prefill with trailing whitespace (the API rejects it).
+- For frontier models, prefer `output_config.format` — it guarantees a schema-valid response without the parsing gymnastics.
+
+---
+
+## Vision / Multimodal Prompting
+
+**When to use:** Image analysis, chart/diagram reading, screenshot or document extraction.
+
+### Structure
+
+```
+Analyze the attached image.
+
+Identify:
+1. [what to look for]
+2. [what to extract]
+
+Return the result as [format].
+```
+
+### Claude Vision Example
+
+Images are content blocks alongside text in the user turn:
+
+```python
+response = client.messages.create(
+    model="YOUR_MODEL",
+    max_tokens=1024,
+    messages=[
+        {
+            "role": "user",
+            "content": [
+                {
+                    "type": "image",
+                    "source": {
+                        "type": "base64",
+                        "media_type": "image/png",
+                        "data": image_b64,
+                    },
+                },
+                {
+                    "type": "text",
+                    "text": "Extract every line item from this receipt as JSON: "
+                            "[{item, qty, price}].",
+                },
+            ],
+        }
+    ],
+)
+```
+
+Best practices:
+- Put the image before the text instruction — models attend better to instructions that follow the image.
+- Ask for specific fields and an explicit output format, exactly as with text extraction.
+- For multi-page documents or PDFs, prompt page-by-page for reliable extraction.
+- Embeddings for example/context selection are covered under **Dynamic Few-Shot Selection** above.
+
+---
+
 ## Related Skills
 
-- **RAG Architect** - Retrieval patterns for grounding prompts
-- **Fine-Tuning Expert** - When prompting isn't enough
-- **LLM Architect** - System-level prompt orchestration
+- **building-pydantic-ai-agents** - Building agents that use these prompt patterns
+- **python-pro** - Implementing prompt pipelines, prefill parsing, and tests in Python

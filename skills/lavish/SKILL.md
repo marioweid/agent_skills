@@ -34,15 +34,7 @@ Use lavish-axi when the user asks for a visual artifact, HTML explainer, interac
 2. Run `npx -y lavish-axi <html-file>` to open or resume a review session in the browser.
 3. Run `npx -y lavish-axi poll <html-file>` to long-poll for the user's annotations and queued prompts.
    On the first poll, prefer `--agent-reply "<one-line summary of what you built and what to review first>"` so the conversation panel opens with context.
-   Browser-detected layout issues are filed passively in the user's Layout issues inbox and arrive as an ordinary `layout-warnings` prompt only when the user selects and queues them. Never edit an issue the user has not queued. The only response that arrives without user action is `artifact_failures`, when the review surface itself is unusable.
-   The poll stays silent until the user acts or a fatal artifact failure makes the review surface unusable - leave it running, never kill it.
-   Cosmetic, intentional, transient, tiny, and uncertain observations remain silent.
-   Keep the poll in the foreground by default and let it return the feedback directly to the agent.
-   A background poll is allowed only through a harness-native tracked background-job facility whose completion result is guaranteed to resume or notify the same agent.
-   Never use `nohup`, shell `&`, `disown`, redirected fire-and-forget processes, or a detached terminal without an explicit verified callback merely to keep polling alive.
-   If the harness has no completion-aware background facility, use the foreground poll or first wire a verified wake callback into the surrounding supervisor.
-   Do not tell the user the artifact is being monitored until that wake path is live.
-   If the poll gets killed or times out anyway, just re-run it - queued feedback is never lost.
+   Follow the full poll policy in "Commands & rules" below (foreground by default, no `nohup`/`&`/`disown`, layout-warnings inbox, `Send & End`); the short version: keep the poll in the foreground, leave it running, and just re-run it if it dies.
 4. If poll returns feedback, apply the user's prompts. A `layout-warnings` prompt is an explicit repair request; apply every listed fix in one pass before saving, and let Lavish re-check it after a newer artifact load.
 5. Apply human feedback, then poll again with `--agent-reply "<message>"` to reply in the browser and keep the loop going under the same foreground-or-verified-wake-path rule.
 6. Run `npx -y lavish-axi end <html-file>` when the review is finished.

@@ -11,7 +11,7 @@
 # See references/prek.md for more commands.
 
 default_language_version:
-  python: python3.12
+  python: python3.13
 
 repos:
   # === Code Quality ===

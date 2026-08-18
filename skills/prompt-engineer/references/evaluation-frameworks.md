@@ -263,7 +263,7 @@ Respond with JSON:
 class LLMJudge:
     """Automated evaluation using LLM-as-judge."""
 
-    def __init__(self, judge_model: str = "claude-opus-4-5-20251101"):
+    def __init__(self, judge_model: str = "claude-sonnet"):
         self.judge_model = judge_model
         self.judge_prompt = self._load_judge_prompt()
 
@@ -526,26 +526,26 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Set up Python
-        uses: actions/setup-python@v5
+      - name: Install uv
+        uses: astral-sh/setup-uv@v6
         with:
-          python-version: '3.11'
+          python-version: '3.13'
 
       - name: Install dependencies
-        run: pip install -r requirements-eval.txt
+        run: uv sync
 
       - name: Run evaluation
         env:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
         run: |
-          python evaluation/run_evaluation.py \
+          uv run python evaluation/run_evaluation.py \
             --prompt prompts/latest.txt \
             --suites evaluation/test_cases/*.json \
             --output results/
 
       - name: Check thresholds
         run: |
-          python evaluation/check_thresholds.py \
+          uv run python evaluation/check_thresholds.py \
             --results results/report.json \
             --min-accuracy 0.90 \
             --max-latency 2.0
@@ -773,6 +773,6 @@ class RegressionDetector:
 
 ## Related Skills
 
-- **Prompt Optimization** - Acting on evaluation results
-- **Test Master** - General testing patterns
-- **MLOps Engineer** - Production monitoring and deployment
+- **Prompt Optimization** (`references/prompt-optimization.md`) - Acting on evaluation results
+- **python-pro** - Writing pytest suites and evaluation tooling for prompts
+- **building-pydantic-ai-agents** - Testing and evaluating agent behavior

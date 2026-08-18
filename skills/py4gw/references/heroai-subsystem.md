@@ -8,7 +8,6 @@ Canonical docs:
 - `FOLLOW_REFACTOR_HANDOVER.md` — required reading before touching `HeroAI/follow/`.
 - `docs/HeroAi_interrupt_feasibility.md` — interrupt subsystem.
 - `docs/hex_removal_architecture_and_authoring.md` — hex removal architecture.
-- `docs/heroai_combat_handover.md` — combat handover doc.
 
 ## Layout
 

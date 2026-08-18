@@ -56,11 +56,12 @@ user_cache: Cache[int, str] = Cache()
 user_cache.set(1, "Alice")
 
 # Constrained TypeVar
-from numbers import Number
-NumT = TypeVar('NumT', bound=Number)
+# `numbers.Number` has no typed `__add__`, so it fails under strict typing.
+# Bind to a concrete type that supports the operation, or a Protocol.
+NumT = TypeVar('NumT', bound=float)
 
 def add_numbers(a: NumT, b: NumT) -> NumT:
-    return a + b  # type: ignore[return-value]
+    return a + b
 ```
 
 ## Protocol for Structural Typing
@@ -190,32 +191,36 @@ def query_user(conn: Connection, user_id: int) -> User:
     return conn.execute(f"SELECT * FROM users WHERE id = {user_id}")
 ```
 
-## Mypy Configuration
+## ty Configuration
+
+Configure strictness through `[tool.ty.rules]` — ty is the type checker in this
+toolchain (not mypy / pyright). The simplest strict posture promotes every
+diagnostic to an error:
 
 ```toml
 # pyproject.toml
-[tool.mypy]
-python_version = "3.11"
-strict = true
-warn_return_any = true
-warn_unused_configs = true
-disallow_untyped_defs = true
-disallow_any_generics = true
-disallow_subclassing_any = true
-disallow_untyped_calls = true
-disallow_incomplete_defs = true
-check_untyped_defs = true
-no_implicit_optional = true
-warn_redundant_casts = true
-warn_unused_ignores = true
-warn_no_return = true
-warn_unreachable = true
-strict_equality = true
+[tool.ty.environment]
+python-version = "3.13"
 
-[[tool.mypy.overrides]]
-module = "third_party.*"
-ignore_missing_imports = true
+[tool.ty.terminal]
+error-on-warning = true
+
+[tool.ty.rules]
+# Strict from day one: every diagnostic is an error.
+all = "error"
+# Keep unused ignores visible so stale suppressions get cleaned up.
+unused-ignore-comment = "error"
 ```
+
+For a legacy codebase, start lenient and tighten as you fix errors — set the
+noisy rules to `"ignore"` first, then remove them one at a time:
+
+```toml
+[tool.ty.rules]
+possibly-unresolved-reference = "warn"
+unresolved-import = "ignore"      # remove once third-party stubs are in place
+```
+
 
 ## Common Type Patterns
 

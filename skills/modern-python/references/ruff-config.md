@@ -9,7 +9,7 @@ Add to `pyproject.toml`:
 ```toml
 [tool.ruff]
 line-length = 100
-target-version = "py311"
+target-version = "py313"
 src = ["src"]
 
 [tool.ruff.lint]
@@ -19,6 +19,16 @@ ignore = [
     "COM812",   # trailing comma (formatter conflict)
     "ISC001",   # string concat (formatter conflict)
 ]
+
+# Enforce the ≤8 complexity / ≤5 positional-args hard limits (C90 + PLR are
+# already selected via "ALL"; mccabe requires C90 to be selected to take effect).
+[tool.ruff.lint.mccabe]
+max-complexity = 8
+
+[tool.ruff.lint.pylint]
+max-args = 5
+max-branches = 12
+max-returns = 6
 
 [tool.ruff.format]
 quote-style = "double"

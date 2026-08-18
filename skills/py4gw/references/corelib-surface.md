@@ -94,7 +94,7 @@ The package `__init__.py` re-exports most subpackages. `from Py4GWCoreLib import
 Before assuming a name is exported via `*`:
 
 ```bash
-rg 'from \.\w+ import' /Users/mario/Sources/Py4GW/Py4GWCoreLib/__init__.py
+rg 'from \.\w+ import' ~/Sources/Py4GW/Py4GWCoreLib/__init__.py
 ```
 
 If you need a name that isn't re-exported, import it explicitly from the submodule.

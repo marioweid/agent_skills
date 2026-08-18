@@ -50,7 +50,6 @@ func TestParallel(t *testing.T) {
     }
 
     for _, tt := range tests {
-        tt := tt // Capture range variable for parallel tests
         t.Run(tt.name, func(t *testing.T) {
             t.Parallel() // Run subtests in parallel
 
@@ -258,14 +257,9 @@ func FuzzAdd(f *testing.F) {
 }
 ```
 
-## Test Coverage
+## Table-Driven Test Example
 
 ```go
-// Run tests with coverage:
-// go test -cover
-// go test -coverprofile=coverage.out
-// go tool cover -html=coverage.out
-
 func TestCalculate(t *testing.T) {
     tests := []struct {
         name     string
@@ -370,7 +364,7 @@ var update = flag.Bool("update", false, "update golden files")
 
 ```go
 // integration_test.go
-// +build integration
+//go:build integration
 
 package myapp
 
@@ -443,7 +437,6 @@ func ExampleKeys() {
 | `go test -v` | Verbose output |
 | `go test -run TestName` | Run specific test |
 | `go test -bench .` | Run benchmarks |
-| `go test -cover` | Show coverage |
 | `go test -race` | Run race detector |
 | `go test -short` | Skip long tests |
 | `go test -fuzz FuzzName` | Run fuzzing |

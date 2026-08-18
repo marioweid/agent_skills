@@ -185,10 +185,10 @@ let value = Err("error").unwrap_or(42);  // 42
 // expect: unwrap with custom panic message
 let value = result.expect("Failed to parse number");
 
-// Pattern matching
+// Pattern matching — report via tracing, not println!/eprintln!
 match divide(10.0, 2.0) {
-    Ok(result) => println!("Result: {}", result),
-    Err(e) => eprintln!("Error: {}", e),
+    Ok(result) => tracing::info!(result, "division succeeded"),
+    Err(e) => tracing::error!(error = %e, "division failed"),
 }
 ```
 
@@ -319,8 +319,7 @@ impl<T, E: Error + Send + Sync + 'static> Context<T> for Result<T, E> {
 ## Best Practices
 
 - Use Result for recoverable errors, panic! for unrecoverable bugs
-- Prefer ? operator over unwrap() in production code
-- Use expect() with descriptive messages instead of unwrap()
+- Prefer the ? operator; treat both unwrap() and expect() as smells in production code
 - Use thiserror for libraries (structured errors)
 - Use anyhow for applications (simple error handling)
 - Implement std::error::Error trait for custom error types
@@ -331,4 +330,4 @@ impl<T, E: Error + Send + Sync + 'static> Context<T> for Result<T, E> {
 - Use Result::ok() to convert Result to Option (discarding error)
 - Avoid String as error type (use custom types instead)
 - Use ensure! and bail! from anyhow for cleaner checks
-- Log errors at boundaries, return them in library code
+- Report errors at boundaries with tracing::error!/warn! (never println!/eprintln!), return them in library code
