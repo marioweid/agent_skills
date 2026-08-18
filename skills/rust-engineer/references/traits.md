@@ -361,9 +361,7 @@ fn accept_user_id(id: impl Into<UserId>) {
     println!("User ID: {}", user_id.0);
 }
 
-// TryFrom for fallible conversions
-use std::convert::TryFrom;
-
+// TryFrom for fallible conversions (in the 2021+ prelude — no import needed)
 impl TryFrom<i64> for UserId {
     type Error = &'static str;
 

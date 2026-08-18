@@ -417,18 +417,6 @@ fn test_json_output() {
 // Review snapshots: cargo insta review
 ```
 
-## Code Coverage
-
-```rust
-// Using tarpaulin
-// cargo install cargo-tarpaulin
-// cargo tarpaulin --out Html --output-dir coverage
-
-// Using llvm-cov
-// cargo install cargo-llvm-cov
-// cargo llvm-cov --html
-```
-
 ## Fuzzing
 
 ```rust
@@ -464,7 +452,7 @@ fuzz_target!(|data: &[u8]| {
 - Mock external dependencies for unit tests
 - Use test fixtures for complex setup/teardown
 - Run clippy on test code too
-- Measure code coverage and aim for high coverage
+- Test behavior and contracts — same result for equivalent inputs — not code coverage
 - Use fuzzing for security-critical parsers
 - Test async code with tokio::test
 - Use snapshot testing for complex output validation

@@ -3,8 +3,6 @@ name: golang-pro
 description: Implements concurrent Go patterns using goroutines and channels, designs and builds microservices with gRPC or REST, optimizes Go application performance with pprof, and enforces idiomatic Go with generics, interfaces, and robust error handling. Use when building Go applications requiring concurrent programming, microservices architecture, or high-performance systems. Invoke for goroutines, channels, Go generics, gRPC integration, CLI tools, benchmarks, or table-driven testing.
 license: MIT
 metadata:
-  author: https://github.com/Jeffallan
-  version: "1.1.0"
   domain: language
   triggers: Go, Golang, goroutines, channels, gRPC, microservices Go, Go generics, concurrent programming, Go interfaces
   role: specialist
@@ -15,7 +13,7 @@ metadata:
 
 # Golang Pro
 
-Senior Go developer with deep expertise in Go 1.21+, concurrent programming, and cloud-native microservices. Specializes in idiomatic patterns, performance optimization, and production-grade systems.
+Senior Go developer with deep expertise in Go 1.24+, concurrent programming, and cloud-native microservices. Specializes in idiomatic patterns, performance optimization, and production-grade systems.
 
 ## Core Workflow
 
@@ -24,7 +22,7 @@ Senior Go developer with deep expertise in Go 1.21+, concurrent programming, and
 3. **Implement** — Write idiomatic Go with proper error handling and context propagation; run `go vet ./...` before proceeding
 4. **Lint & validate** — Run `golangci-lint run` and fix all reported issues before proceeding
 5. **Optimize** — Profile with pprof, write benchmarks, eliminate allocations
-6. **Test** — Table-driven tests with `-race` flag, fuzzing, 80%+ coverage; confirm race detector passes before committing
+6. **Test** — Table-driven tests with `-race` flag, fuzzing; test behavior and contracts (same result for equivalent inputs), not code coverage; confirm race detector passes before committing
 
 ## Code Organization: Structs, Methods, and Functions
 
@@ -158,6 +156,4 @@ When implementing Go features, provide:
 
 ## Knowledge Reference
 
-Go 1.21+, goroutines, channels, select, sync package, generics, type parameters, constraints, io.Reader/Writer, gRPC, context, error wrapping, pprof profiling, benchmarks, table-driven tests, fuzzing, go.mod, internal packages, functional options
-
-[Documentation](https://jeffallan.github.io/claude-skills/skills/language/golang-pro/)
+Go 1.24+, goroutines, channels, select, sync package, generics, type parameters, constraints, io.Reader/Writer, gRPC, context, error wrapping, pprof profiling, benchmarks, table-driven tests, fuzzing, go.mod, internal packages, functional options
