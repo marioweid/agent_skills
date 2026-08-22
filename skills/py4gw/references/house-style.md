@@ -1,6 +1,6 @@
 # House Style
 
-Style rules for any code in `~/Sources/Py4GW`. Sources: `pyproject.toml`, `pyrightconfig.json`, `README.md`, `AGENTS.md`.
+Style rules for any code in `~/Sources/Py4GW_Reforged`. Sources: `pyproject.toml`, `pyrightconfig.json`, `README.md`, `AGENTS.md`.
 
 ## Runtime
 
@@ -43,12 +43,12 @@ Use pyright **only if it's installed in the environment**. There's no CI step th
 
 - **No repo-level CI/test runner.** No `.github/workflows`, no `pytest` / `tox` config, no `Makefile`.
 - Don't guess a global test command. If you need to verify behavior, run **targeted scripts** — `AGENTS.md` documents a few:
-  - `python "bridge_daemon.py" --help`
-  - `python "bridge_cli.py" --help`
-  - `python "py4gw_mcp_server.py" --help`
-  - `python "Sources/modular_bot/tools/validate_modular_docs.py"`
-  - `python "Widgets/Data/test_merchant_rules_regression.py"`
-- **Existing regression tests are canonical — use them, never delete them.** When a committed regression script already covers the area you're touching (e.g. `test_merchant_rules_regression.py`), run it to verify your change. If you changed the logic it tests, **modify the regression test to match** — never delete it and never leave it stale.
+  - `python -m py4gw_bridge.daemon --help`
+  - `python -m py4gw_bridge.cli --help`
+  - `python -m py4gw_bridge.mcp_server --help`
+  - `python "Sources/modular_data/tools/validate_modular_architecture.py"`
+  - `python "Examples and tests/tests/test_settings_migration.py"`
+- **Existing regression tests are canonical — use them, never delete them.** When a committed regression script already covers the area you're touching (e.g. `Examples and tests/tests/test_settings_migration.py`), run it to verify your change. If you changed the logic it tests, **modify the regression test to match** — never delete it and never leave it stale.
 - **New regression tests you author are throwaway.** Maintainers don't accept *new* regression tests in the repo. Write one to verify a change, run it to confirm behavior, then delete it before committing. This applies only to regression tests that didn't already exist — never delete a pre-existing committed one.
 
 ## Comments
@@ -78,11 +78,11 @@ Don't commit churn to them unless the task is specifically about them.
 
 When citing docs, observe the hierarchy from `AGENTS.md`:
 
-- `docs/Py4GW_Conceptual_Model.md` — canonical architecture / terminology.
-- `docs/MCP_bridge.md` — bridge / MCP planning summary; not the primary architecture source.
-- `docs/widget_manager_and_catalog.md` — highest-value reference before changing widget discovery / metadata defaults / `WidgetHandler` / `WidgetCatalog`.
-- `BridgeRuntime/README.md` — operator/runtime reference for bridge daemon + injected client + CLI.
-- `docs/Py4GW_Model_Features_Detail.txt` — derived plain-text export for quick scanning, not authoritative.
+- `docs/architecture/reference/py4-gw-conceptual-model.md` — canonical architecture / terminology.
+- `docs/bridge/mcp/mcp-bridge.md` — bridge / MCP planning summary; not the primary architecture source.
+- `docs/ui/widget-manager/widget-manager-and-catalog.md` — highest-value reference before changing widget discovery / metadata defaults / `WidgetHandler` / `WidgetCatalog`.
+- `py4gw_bridge/README.md` — operator/runtime reference for bridge daemon + injected client + CLI.
+- `docs/archive/architecture/reference/py4-gw-model-features-detail.txt` — derived plain-text export for quick scanning, not authoritative.
 
 ## Anti-Patterns
 

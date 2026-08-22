@@ -1,6 +1,6 @@
 # Architecture Layers
 
-This is the operating model for `~/Sources/Py4GW`. It is condensed from `docs/Py4GW_Conceptual_Model.md` (canonical), `AGENTS.md` (root, operator-facing), and the actual import topology of `Py4GWCoreLib/__init__.py`.
+This is the operating model for `~/Sources/Py4GW_Reforged`. It is condensed from `docs/architecture/reference/py4-gw-conceptual-model.md` (canonical), `AGENTS.md` (root, operator-facing), and the actual import topology of `Py4GWCoreLib/__init__.py`.
 
 When deciding where new code belongs, place it at the **lowest layer that doesn't introduce a circular import**, and respect the migration direction: pure-Python `native_src` is preferred over C++-bound primitives whenever both exist.
 
@@ -11,7 +11,8 @@ When deciding where new code belongs, place it at the **lowest layer that doesn'
 | Bots, Sources, Widgets/Automation, Examples (user-facing scripts)    |
 +----------------------------------------------------------------------+
 | HeroAI (combat / targeting / follow / interrupt / hex_removal),      |
-| ModularBot (Sources/modular_bot), Bot_Factory (root),                |
+| ModularBot (Py4GWCoreLib/modular + Sources/modular_data),            |
+| Bot_Factory (Examples and tests/tests/Bot_Factory.py),               |
 | Widget Manager + WidgetCatalog (Py4GWCoreLib/py4gwcorelib_src)       |
 +----------------------------------------------------------------------+
 | Routines / routines_src (BehaviourTrees, Agents, Movement, Checks,   |
@@ -20,16 +21,17 @@ When deciding where new code belongs, place it at the **lowest layer that doesn'
 | GLOBAL_CACHE (derivative consumer/cache layer)                       |
 +----------------------------------------------------------------------+
 | Py4GWCoreLib source-of-truth modules:                                |
-|   Agent, AgentArray, Camera, CombatEvents, Context, DXOverlay,       |
-|   Effect, ImGui, Inventory, Item, ItemArray, Map, Merchant, Overlay, |
-|   Party, Player, Quest, Skill, Skillbar, UIManager, ...              |
+|   Agent, AgentArray, Camera, AgentEvents (PyAgentEvents), Context,    |
+|   DXOverlay, Effect, ImGui, Inventory, Item, ItemArray, Map,          |
+|   Merchant, Overlay, Party, Player, Quest, Skill, Skillbar,           |
+|   UIManager, ...                                                      |
 +----------------------------------------------------------------------+
 | Foundational primitives:                                             |
 |   stubs/ (forward decls of C++-bound surface)                        |
 |   Py4GWCoreLib/native_src (pure-Python native callers)               |
-|   PyScanner, PyPointers, PyCallback, Py4GW (system surface),         |
-|   PyPathing, PyKeystroke, PyTrading, Py2DRenderer, PyOverlay,        |
-|   PyImGui                                                            |
+|   PyScanner, PyCallback, PySystem (console/process), PyGameThread,   |
+|   PyPing, PyAgentEvents, PyPathing, PyKeystroke, PyTrade,            |
+|   PyDXOverlay, PyOverlay, PyImGui                                    |
 +----------------------------------------------------------------------+
 | Gw.exe (true origin of all runtime data)                             |
 +----------------------------------------------------------------------+
@@ -130,8 +132,8 @@ When writing a window, use `ImGui.WindowModule` (the CoreLib wrapper), not raw `
 
 ## Cross-References
 
-- `docs/Py4GW_Conceptual_Model.md` — canonical, full model.
-- `docs/Py4GW_Model_Features_Detail.txt` — flat text export of the same content, useful for grepping.
-- `docs/MCP_bridge.md` — bridge/MCP planning (orthogonal to the layer model; covers bridge daemon + MCP adapter only).
-- `AGENTS.md` (repo root) — operator-facing summary + gotchas.
-- `FOLLOW_REFACTOR_HANDOVER.md` — required reading before touching `HeroAI/follow/`.
+- `docs/architecture/reference/py4-gw-conceptual-model.md` — canonical, full model.
+- `docs/archive/architecture/reference/py4-gw-model-features-detail.txt` — flat text export of the same content, useful for grepping.
+- `docs/bridge/mcp/mcp-bridge.md` — bridge/MCP planning (orthogonal to the layer model; covers bridge daemon + MCP adapter only).
+- `AGENTS.md` (repo root) — operator-facing summary + gotchas; detailed rules in `docs/py4gw-ai/`.
+- `Examples and tests/tests/FOLLOW_REFACTOR_HANDOVER.md` — required reading before touching `HeroAI/follow/`.

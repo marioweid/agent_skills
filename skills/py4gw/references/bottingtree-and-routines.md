@@ -2,7 +2,7 @@
 
 The behavior-tree-driven bot stack. Use this reference when authoring a `BottingTree`-based bot, or when adding a new helper to `routines_src/BehaviourTrees.py`.
 
-Canonical doc: `docs/bottingtree_and_bt_routines_guide.md` (1100 lines, dense). This is the operating summary.
+Canonical doc: `docs/automation/behavior-trees/bottingtree-and-bt-routines-guide.md` (dense). This is the operating summary.
 
 ## Three-Layer Stack
 
@@ -138,7 +138,7 @@ def TravelToOutpost(map_id: int) -> BehaviorTree:
 To validate metadata coverage on an existing ModularBot surface:
 
 ```bash
-python "Sources/modular_bot/tools/validate_modular_docs.py"
+python "Sources/modular_data/tools/validate_modular_architecture.py"
 ```
 
 ## When To Reach For BottingTree
@@ -161,8 +161,8 @@ When adding, decorate with the `Meta:` block above. Don't add undecorated helper
 
 ## Cross-References
 
-- `docs/bottingtree_and_bt_routines_guide.md` — canonical, 1100 lines.
-- `docs/behavior_tree_metadata_preparation_guide.md` — the metadata discovery contract details.
+- `docs/automation/behavior-trees/bottingtree-and-bt-routines-guide.md` — canonical.
+- `docs/automation/behavior-trees/behavior-tree-metadata-preparation-guide.md` — the metadata discovery contract details.
 - `Py4GWCoreLib/BottingTree.py` — runtime wrapper.
 - `Py4GWCoreLib/routines_src/BehaviourTrees.py` — reusable subtree catalog.
 - `Py4GWCoreLib/py4gwcorelib_src/BehaviorTree.py` — framework.

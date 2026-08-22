@@ -1,6 +1,6 @@
 # Bot Patterns
 
-Four bot styles exist in `~/Sources/Py4GW`. Each has a clear use case. Pick the one that matches the bot's complexity; don't over-engineer.
+Four bot styles exist in `~/Sources/Py4GW_Reforged`. Each has a clear use case. Pick the one that matches the bot's complexity; don't over-engineer.
 
 | Style | When to use | Canonical example |
 |-------|-------------|-------------------|
@@ -123,7 +123,7 @@ def FightMobs() -> Generator:
 def main():
     DrawWindow()
     if bot_variables.config.is_script_running and not bot_variables.config.routine_finished:
-        coroutines.Add(RunRoute())
+        coroutines.append(RunRoute())
         bot_variables.config.is_script_running = False
 ```
 
@@ -132,7 +132,7 @@ Rules:
 - `yield from Routines.Movement.FollowPath(...)` is the canonical movement primitive — it handles path following + obstacle dodging + rubber-band recovery.
 - `yield` (bare) means "give up this frame, resume next frame." Use it inside tight loops that otherwise would block.
 - The `Routines` helpers (Movement, Targeting, Combat, Checks, Agents) are mostly generator-shaped — `yield from` them.
-- Register only **once** per logical run with `coroutines.Add(...)`. The flag flip prevents re-adding.
+- Register only **once** per logical run with `coroutines.append(...)`. The flag flip prevents re-adding.
 
 ## Style 3: `Botting` harness
 
@@ -179,7 +179,7 @@ Use when:
 
 ## Path Coordinates
 
-Coordinates come from `Examples/Coord_Logger.py` or from in-game coordinate widgets. Ask the user to paste the list; don't fabricate. Standard format:
+Coordinates come from `Examples and tests/Coord_Logger.py` or from in-game coordinate widgets. Ask the user to paste the list; don't fabricate. Standard format:
 
 ```python
 path_points_to_killing_spot: List[Tuple[float, float]] = [
@@ -202,8 +202,8 @@ The natural movement primitive is `Routines.Movement.FollowPath(path_points, tol
 ## Logging
 
 ```python
-Py4GW.Console.Log(MODULE_NAME, 'Routine finished', Py4GW.Console.MessageType.Notice)
-# Levels: Notice, Warning, Error, Info, Success, Debug (check Py4GW.Console.MessageType enum)
+PySystem.Console.Log(MODULE_NAME, 'Routine finished', PySystem.Console.MessageType.Notice)
+# Levels: Notice, Warning, Error, Info, Success, Debug (check PySystem.Console.MessageType enum)
 ```
 
 Or via the `ConsoleLog` wrapper from `Py4GWCoreLib`:
@@ -221,8 +221,8 @@ Console output is the only feedback channel for headless scripts. Don't `print()
 | `Bots/<Category>/` | "Official" example bots and challenge bots. Read-mostly for non-maintainers. |
 | `Bots/marks_coding_corner/` | Mark's farm collection. Don't add unrelated bots here. |
 | `Sources/<your-name>/` | Personal / contributor bot collections. The natural home for new bots that aren't part of a curated set. |
-| `Examples/` | Small demos of a single API surface. Not full farms. |
+| `Examples and tests/` | Small demos of a single API surface. Not full farms. |
 | `Widgets/Automation/Bots/` | Bots delivered as widgets (loaded by Widget Manager). |
-| `Widgets/Automation/modularbot/` | ModularBot wrappers. Note: the real implementation is in `Sources/modular_bot/`; this folder just exposes it. |
+| `Widgets/Automation/modular/` | ModularBot wrappers. Note: the real implementation is in `Py4GWCoreLib/modular/` (prebuilt data in `Sources/modular_data/`); this folder just exposes widget wrappers. |
 
 Ask the user where they want the bot to live before writing it.

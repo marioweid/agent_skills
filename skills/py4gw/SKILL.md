@@ -1,12 +1,12 @@
 ---
 name: py4gw
-description: Use for Python work in ~/Sources/Py4GW, the Guild Wars 1 automation platform. Covers Py4GWCoreLib, bots, widgets, HeroAI, BottingTree/Routines, GLOBAL_CACHE, PyImGui, debugging, and Py4GW-idiomatic bot authoring.
+description: Use for Python work in ~/Sources/Py4GW_Reforged, the Guild Wars 1 automation platform. Covers Py4GWCoreLib, bots, widgets, HeroAI, BottingTree/Routines, GLOBAL_CACHE, PyImGui, debugging, and Py4GW-idiomatic bot authoring.
 license: MIT
 metadata:
   author: mario.weidner@gmx.de
-  version: "0.1.0"
+  version: "0.2.0"
   domain: automation
-  triggers: Py4GW, Py4GWCoreLib, GLOBAL_CACHE, BottingTree, RoutinesBT, BorealBot, VaettirBot, HeroAI, ModularBot, Bot_Factory, Widget Manager, WidgetCatalog, Routines.Movement, AgentArray, ImGui.WindowModule, PyImGui, stubs, native_src, leader_publish, Follow Formations, ~/Sources/Py4GW, /Users/mario/Sources/Py4GW
+  triggers: Py4GW, Py4GWCoreLib, GLOBAL_CACHE, BottingTree, RoutinesBT, BorealBot, VaettirBot, HeroAI, ModularBot, Bot_Factory, Widget Manager, WidgetCatalog, Routines.Movement, AgentArray, ImGui.WindowModule, PyImGui, stubs, native_src, leader_publish, Follow Formations, ~/Sources/Py4GW_Reforged
   role: specialist
   scope: implementation
   output-format: code
@@ -15,23 +15,25 @@ metadata:
 
 # Py4GW Platform & Bot Specialist
 
-Collaborative authoring assistant for the **Py4GW** Guild Wars 1 Python automation platform at `~/Sources/Py4GW`. This is the sister skill to `gwa2-bot` — same intent (translate gameplay knowledge into working bot code) but for the Py4GW stack instead of the AutoIt/GWA2 stack.
+Collaborative authoring assistant for the **Py4GW** Guild Wars 1 Python automation platform at `~/Sources/Py4GW_Reforged`. This is the sister skill to `gwa2-bot` — same intent (translate gameplay knowledge into working bot code) but for the Py4GW stack instead of the AutoIt/GWA2 stack.
+
+The current, maintained repo is `~/Sources/Py4GW_Reforged` (plus its native companion `~/Sources/Py4GW_Reforged_Native`). A legacy tree may still exist at `~/Sources/Py4GW` — treat it as historical/parity evidence, never as current truth. The repo's root `AGENTS.md` is the agent contract and delegates detailed rules to `docs/py4gw-ai/`; read those guides before multi-step work in the repo.
 
 The skill does **not** know what mobs live where, which build farms which mobs, or the optimal aggro path for a route — the user does. The skill knows the Py4GW layer architecture, the `Py4GWCoreLib` surface, the BottingTree / Routines helpers, the widget discovery rules, the HeroAI conventions, and the repo's house style. It translates the user's gameplay description into idiomatic Py4GW code and iterates with them.
 
 ## When to Use This Skill
 
-**Auto-trigger on any Python work under `~/Sources/Py4GW`.** Reading, editing, reviewing, or discussing any `.py` file in that tree — bots, CoreLib modules, widgets, HeroAI, examples — should activate this skill, even before the user explicitly mentions Py4GW. The repo has non-obvious layer rules (foundational primitives → `Py4GWCoreLib` → `GLOBAL_CACHE` → routines/HeroAI/widgets), a heavy `Py4GWCoreLib/__init__.py` convenience facade, Python 3.13.0 32-bit injection constraints, and house style (Black 120, single quotes, `force_single_line` imports) that are easy to violate without this skill loaded.
+**Auto-trigger on any Python work under `~/Sources/Py4GW_Reforged`.** Reading, editing, reviewing, or discussing any `.py` file in that tree — bots, CoreLib modules, widgets, HeroAI, examples — should activate this skill, even before the user explicitly mentions Py4GW. The repo has non-obvious layer rules (foundational primitives → `Py4GWCoreLib` → `GLOBAL_CACHE` → routines/HeroAI/widgets), a heavy `Py4GWCoreLib/__init__.py` convenience facade, Python 3.13.0 32-bit injection constraints, and house style (Black 120, single quotes, `force_single_line` imports) that are easy to violate without this skill loaded.
 
 Specific scenarios:
 
-- **Any `.py` file in `~/Sources/Py4GW`** — apply house style (Black 120, single quotes per `skip-string-normalization`, one-import-per-line, no inline comments) by default. See `references/house-style.md`.
+- **Any `.py` file in `~/Sources/Py4GW_Reforged`** — apply house style (Black 120, single quotes per `skip-string-normalization`, one-import-per-line, no inline comments) by default. See `references/house-style.md`.
 - **Collaborative bot authoring** — user describes outpost → explorable → route → build → skill rotation → loot rules; skill scaffolds a matching `MODULE_NAME` / `Botconfig` / `BOTVARIABLES` / `main()` shell, asks clarifying questions, iterates. See `references/bot-patterns.md`.
 - **Modifying an existing bot** — "my BorealBot dies at the chest hop, I want it to wait for skill 6 to recharge first" → diff against the live file under `Bots/` or `Sources/`.
 - **Choosing between bot styles** — Sequential, Yield/coroutine (`GLOBAL_CACHE.Coroutines`), `Botting` harness (used in `Bots/marks_coding_corner/`), `BottingTree` planner (BT-driven). Each has a use case; see `references/bot-patterns.md` and `references/bottingtree-and-routines.md`.
 - **CoreLib contributions** — adding to `Py4GWCoreLib/Agent.py`, `Map.py`, `Player.py`, `Inventory.py`, etc., or extending the `routines_src/` helpers. Respect the layer model: `stubs/` and `native_src` are primitives; `Py4GWCoreLib` is the source-of-truth Python layer; `GLOBAL_CACHE` is a derivative cache. See `references/architecture-layers.md` and `references/corelib-surface.md`.
 - **Widget development** — creating widgets under `Widgets/<Category>/<Folder>/` with a `.widget` marker. Discovery is folder-based, not file-based; metadata defaults come from `Py4GWCoreLib/py4gwcorelib_src/WidgetManager.py`. See `references/widget-development.md`.
-- **HeroAI subsystem** — combat, targeting, follow. Performance-sensitive per-frame pipeline; uses `frame_cache`, shared-memory `leader_publish`, exact submodule imports (`HeroAI.follow.leader_publish`, never `HeroAI.follow`). Read `FOLLOW_REFACTOR_HANDOVER.md` before touching follow code. See `references/heroai-subsystem.md`.
+- **HeroAI subsystem** — combat, targeting, follow. Performance-sensitive per-frame pipeline; uses `frame_cache`, shared-memory `leader_publish`, exact submodule imports (`HeroAI.follow.leader_publish`, never `HeroAI.follow`). Read `Examples and tests/tests/FOLLOW_REFACTOR_HANDOVER.md` before touching follow code. See `references/heroai-subsystem.md`.
 - **Debugging** — a bot that hangs, fails a map transition, stalls in a coroutine, prints nothing to the console, throws on import. See `references/debugging-playbook.md`.
 - **Explaining** a CoreLib function: signature, layer, real call sites, gotchas. Use `references/corelib-surface.md` as the index.
 - **Reviewing** a bot pre-commit (return contract, coroutine hygiene, console logging discipline, layer respect, no edits to `Py4GW.ini` / launcher INI / injection log, no throwaway regression tests staged).
@@ -89,7 +91,7 @@ The user says "my X bot does Y but I want Z." This is a diff, not a rewrite.
 ### Workflow C — Debug a broken bot / failing import / hang
 
 1. **Reproduce** — get the Py4GW console log lines, the failing function, the map state at failure time. Ask for these if missing.
-2. **Triage** with `references/debugging-playbook.md` decision tree: console silent → check `Py4GW.Console.Log` argument order and the `sys.stdout` redirect rule from `Py4GWCoreLib/__init__.py`; import errors at startup → don't broaden `Py4GWCoreLib` imports in `GlobalCache/SharedMemory.py`; map transition stuck → wait on `Map.IsMapReady` / loading flags; coroutine never resumes → confirm it was registered with `GLOBAL_CACHE.Coroutines`; HeroAI follower frozen → consult `references/heroai-subsystem.md` follow rules and `FOLLOW_REFACTOR_HANDOVER.md`.
+2. **Triage** with `references/debugging-playbook.md` decision tree: console silent → check `PySystem.Console.Log` argument order and the `sys.stdout` redirect rule from `Py4GWCoreLib/__init__.py`; import errors at startup → don't broaden `Py4GWCoreLib` imports in `GlobalCache/SharedMemory.py`; map transition stuck → wait on `Map.IsMapReady` / loading flags; coroutine never resumes → confirm it was registered with `GLOBAL_CACHE.Coroutines`; HeroAI follower frozen → consult `references/heroai-subsystem.md` follow rules and `Examples and tests/tests/FOLLOW_REFACTOR_HANDOVER.md`.
 3. **Inspect agent state** — snapshot once with `agent = Agent.GetAgentByID(...)` (or the appropriate accessor) and read fields off the snapshot. Don't re-fetch inside a tight `while`.
 4. **Audit cadence** — coroutines yield; sequential bots use `sleep` carefully; per-frame `main()` must return fast.
 5. **Verify return contract** — bots are called per frame. Returning early on uninteresting frames is normal. Throwing kills the runtime for that script.
@@ -119,7 +121,7 @@ Load detailed guidance based on context:
 | Bot patterns | `references/bot-patterns.md` | Writing a new bot; choosing Sequential vs Yield vs `Botting` vs `BottingTree`; understanding the per-frame `main()` contract |
 | BottingTree + Routines | `references/bottingtree-and-routines.md` | Using `Py4GWCoreLib.BottingTree`, `routines_src.BehaviourTrees` (RoutinesBT), planner sequences, upkeep/service trees |
 | Widget development | `references/widget-development.md` | Creating a widget; understanding folder-based discovery, `.widget` markers, `MODULE_CATEGORY`/`MODULE_TAGS`/`OPTIONAL` defaults, `WidgetCatalog` |
-| HeroAI subsystem | `references/heroai-subsystem.md` | Combat / targeting / follow / interrupt / hex_removal; frame-cache rules; shared-memory leader publish; `FOLLOW_REFACTOR_HANDOVER` constraints |
+| HeroAI subsystem | `references/heroai-subsystem.md` | Combat / targeting / follow / interrupt / hex_removal; frame-cache rules; shared-memory leader publish; `Examples and tests/tests/FOLLOW_REFACTOR_HANDOVER.md` constraints |
 | House style | `references/house-style.md` | Any edit — Black 120, single quotes, `force_single_line` isort, no inline comments, Python 3.13.0 32-bit, no broad imports in startup-sensitive modules |
 | Debugging playbook | `references/debugging-playbook.md` | Bot silent / hangs / fails import / map-transition stuck / coroutine never resumes / HeroAI follower frozen |
 
@@ -170,7 +172,7 @@ def RunRoute():
 
 def main():
     if bot_variables.config.is_script_running and not bot_variables.config.routine_finished:
-        coroutines.Add(RunRoute())
+        coroutines.append(RunRoute())
         bot_variables.config.is_script_running = False  # one-shot launch
 ```
 
@@ -185,7 +187,7 @@ hp_pct = me.living_agent.hp / me.living_agent.max_hp if me.living_agent.max_hp e
 ### Logging to the Py4GW console
 
 ```python
-Py4GW.Console.Log(MODULE_NAME, 'Routine finished', Py4GW.Console.MessageType.Notice)
+PySystem.Console.Log(MODULE_NAME, 'Routine finished', PySystem.Console.MessageType.Notice)
 # or via Py4GWCoreLib's ConsoleLog wrapper if already imported via `from Py4GWCoreLib import *`.
 ```
 
@@ -216,7 +218,7 @@ def main():
 - **Use `GLOBAL_CACHE.Coroutines`** for anything that needs to span frames; never `time.sleep(long)` in `main()`.
 - **Frame-cached reads in HeroAI combat path** — `references/heroai-subsystem.md` lists the helpers that already use `frame_cache`; new combat reads should join them, not duplicate them.
 - **Import exact HeroAI submodules** — `from HeroAI.follow.leader_publish import ...`, never `from HeroAI.follow import ...`. The `HeroAI/follow/__init__.py` intentionally exports nothing.
-- **Read `FOLLOW_REFACTOR_HANDOVER.md` before touching follow code** — the prior refactor failed; the rebuild must be incremental with checkpoints.
+- **Read `Examples and tests/tests/FOLLOW_REFACTOR_HANDOVER.md` before touching follow code** — the prior refactor failed; the rebuild must be incremental with checkpoints.
 - **Verify a function exists before calling it** — `Py4GWCoreLib/__init__.py` is a wide facade; not every name in the conceptual model is necessarily re-exported. Grep before assuming.
 - **Use the existing regression test if one already covers the area you touch.** Run it to verify. If you changed the logic it tests, modify the regression test to match. Never delete a pre-existing committed regression test.
 - **Write a *new* regression test to verify a change, then remove it before committing.** Maintainers don't accept new regression tests in the repo — a new one is a throwaway verification step, not a deliverable. See `references/house-style.md` § Linting / Testing.
@@ -233,7 +235,7 @@ def main():
 - **Add bot logic to `Py4GWCoreLib/`.** CoreLib is platform code; bot logic lives in `Bots/`, `Sources/`, or `Widgets/Automation/`.
 - **Add a widget without a `.widget` marker in the folder.** Discovery is folder-based; without the marker the folder is invisible to `WidgetHandler`.
 - **Treat the conceptual model document as exhaustive.** It defines layers and terminology; the actual function surface lives in the modules themselves. Grep when in doubt.
-- **Refactor follow / HeroAI broadly in one pass.** `FOLLOW_REFACTOR_HANDOVER.md` documents the failure mode; the rebuild is incremental.
+- **Refactor follow / HeroAI broadly in one pass.** `Examples and tests/tests/FOLLOW_REFACTOR_HANDOVER.md` documents the failure mode; the rebuild is incremental.
 - **Commit a new regression test you authored for verification.** New ones are throwaway — delete them before the commit.
 - **Delete or ignore a pre-existing committed regression test.** Use it to verify, update it when you change the logic it covers, but never remove it. See `references/house-style.md` § Linting / Testing.
 
@@ -281,4 +283,4 @@ Once the user has filled in enough detail, deliver:
 
 ## Knowledge Reference
 
-Py4GW (apoguita / Py4GW) Python automation platform, Python 3.13.0 32-bit embedded runtime, `Py4GWCoreLib` source-of-truth Python layer, `GLOBAL_CACHE` derivative cache, foundational primitives (`stubs/`, `Py4GWCoreLib/native_src`, `PyScanner`, `PyPointers`, `PyCallback`, `PyPathing`, `PyKeystroke`, `PyTrading`, `Py2DRenderer`, `PyOverlay`, `PyImGui`), CoreLib modules (`Agent`, `AgentArray`, `Camera`, `CombatEvents`, `Context`, `DXOverlay`, `Effect`, `ImGui`, `Inventory`, `Item`, `ItemArray`, `Map`, `Merchant`, `Overlay`, `Party`, `Player`, `Quest`, `Skill`, `Skillbar`, `UIManager`), `Routines` / `routines_src` (`BehaviourTrees` = `RoutinesBT`), `BottingTree`, `Botting`, `HeroAI` (combat / targeting / follow / interrupt / hex_removal / call_target / team_viewer_broadcast / headless_tree), widget runtime (`WidgetManager`, `WidgetHandler`, `WidgetCatalog`, folder-based discovery via `.widget` marker), `ImGui.WindowModule`, `Py4GW.Console.Log`, `GLOBAL_CACHE.Coroutines`, the Py4GW console redirect behavior, Black `line-length=120`, isort `force_single_line=true`, pyright `stubPath=./stubs`, `Py4GW.ini` / launcher INI / injection log skip-worktree convention, `FOLLOW_REFACTOR_HANDOVER.md`.
+Py4GW (apoguita / Py4GW_Reforged) Python automation platform, Python 3.13.0 32-bit embedded runtime, `Py4GWCoreLib` source-of-truth Python layer, `GLOBAL_CACHE` derivative cache, foundational primitives (`stubs/`, `Py4GWCoreLib/native_src`, `PyScanner`, `PyCallback`, `PySystem` (console/process), `PyGameThread`, `PyPing`, `PyPathing`, `PyKeystroke`, `PyTrade`, `PyDXOverlay`, `PyOverlay`, `PyImGui`), CoreLib modules (`Agent`, `AgentArray`, `Camera`, `AgentEvents` (via `PyAgentEvents` binding), `Context`, `DXOverlay`, `Effect`, `ImGui`, `Inventory`, `Item`, `ItemArray`, `Map`, `Merchant`, `Overlay`, `Party`, `Player`, `Quest`, `Skill`, `Skillbar`, `UIManager`), `Routines` / `routines_src` (`BehaviourTrees` = `RoutinesBT`), `BottingTree`, `Botting`, `HeroAI` (combat / targeting / follow / interrupt / hex_removal_src / call_target / team_viewer_broadcast / headless_tree), widget runtime (`WidgetManager`, `WidgetHandler`, `WidgetCatalog`, folder-based discovery via `.widget` marker), `ImGui.WindowModule`, `PySystem.Console.Log` (or the `ConsoleLog` wrapper), `GLOBAL_CACHE.Coroutines` (a plain list — use `.append`), the Py4GW console redirect behavior, Black `line-length=120`, isort `force_single_line=true`, pyright `stubPath=./stubs`, `Py4GW.ini` / launcher INI / injection log skip-worktree convention, `Examples and tests/tests/FOLLOW_REFACTOR_HANDOVER.md`.

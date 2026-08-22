@@ -14,13 +14,13 @@ Decision tree for common Py4GW failure modes. Each branch ends with the file/ref
 
 ## Symptom: Console silent (no log output at all)
 
-1. **`Py4GW.Console.Log` argument order:** `Py4GW.Console.Log(tag, message, level)`. Swapping `tag` and `message` doesn't throw but the wrong field becomes the visible tag.
+1. **`PySystem.Console.Log` argument order:** `PySystem.Console.Log(tag, message, level)`. Swapping `tag` and `message` doesn't throw but the wrong field becomes the visible tag.
 2. **Level filter:** Confirm the console level filter isn't hiding the level you logged at. Try `MessageType.Error` or `MessageType.Notice`.
 3. **Module imported via `Py4GWCoreLib import *`?** If yes, `ConsoleLog` is the higher-level wrapper — `ConsoleLog(MODULE_NAME, 'message')`.
 
 ## Symptom: Bot hangs / coroutine never resumes
 
-1. **Was the coroutine actually added?** `GLOBAL_CACHE.Coroutines.Add(my_gen())` — and `my_gen()` must produce a generator, not be a regular function. If you forgot a `yield` anywhere in `my_gen`, it returns immediately and the engine is never invoked.
+1. **Was the coroutine actually added?** `GLOBAL_CACHE.Coroutines.append(my_gen())` — and `my_gen()` must produce a generator, not be a regular function. If you forgot a `yield` anywhere in `my_gen`, it returns immediately and the engine is never invoked.
 
 2. **Is the generator blocked on a condition that never becomes true?** E.g. waiting for `Map.IsMapReady()` while the player is in a cinematic. Add a timeout:
 
@@ -28,7 +28,7 @@ Decision tree for common Py4GW failure modes. Each branch ends with the file/ref
    start = time.time()
    while not Map.IsMapReady():
        if time.time() - start > 30:
-           ConsoleLog(MODULE_NAME, 'Map.IsMapReady timeout', Py4GW.Console.MessageType.Error)
+           ConsoleLog(MODULE_NAME, 'Map.IsMapReady timeout', PySystem.Console.MessageType.Error)
            return  # bail out of the coroutine
        yield
    ```
@@ -111,21 +111,21 @@ Decision tree for common Py4GW failure modes. Each branch ends with the file/ref
 
 The skill **does not cover bridge / MCP work in depth**. For those, read:
 
-- `BridgeRuntime/README.md` — operator usage.
-- `docs/MCP_bridge.md` — bridge planning.
+- `py4gw_bridge/README.md` — operator usage.
+- `docs/bridge/mcp/mcp-bridge.md` — bridge planning.
 - The injected widget `Widgets/Coding/Tools/Bridge Client.py`.
 - Defaults: widget server `127.0.0.1:47811`, control server `127.0.0.1:47812`, CLI targets `47812`.
-- Discovery: `python "bridge_daemon.py" --help`, `python "bridge_cli.py" --help`, `python "py4gw_mcp_server.py" --help`.
+- Discovery: `python -m py4gw_bridge.daemon --help`, `python -m py4gw_bridge.cli --help`, `python -m py4gw_bridge.mcp_server --help`.
 
 ## Symptom: HeroAI follower frozen / drifting
 
-Mandatory reading: `FOLLOW_REFACTOR_HANDOVER.md`.
+Mandatory reading: `Examples and tests/tests/FOLLOW_REFACTOR_HANDOVER.md`.
 
 Quick checks:
 
-1. **Anyone import `HeroAI.follow` (package)?** That import drags in editor UI + vector fields + follower runtime + leader publish all at once. Replace with the exact submodule.
+1. **Anyone import `HeroAI.follow` (package)?** That import drags in editor UI + follower runtime + leader publish all at once. Replace with the exact submodule.
 2. **Recent edit to `Py4GWCoreLib/GlobalCache/SharedMemory.py`?** Even narrow changes there can destabilize startup. Verify the `leader_publish` import is still narrow.
-3. **Both leader and follower running on the same client?** Multi-box configurations have specific rules — see `whiteboard_architecture_cross-hero_cast_coordination.md`.
+3. **Both leader and follower running on the same client?** Multi-box configurations have specific rules — see `docs/architecture/records/whiteboard-architecture-cross-hero-cast-coordination.md`.
 
 ## Investigation Tooling
 

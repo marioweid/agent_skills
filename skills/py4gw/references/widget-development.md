@@ -1,6 +1,6 @@
 # Widget Development
 
-How widget discovery, loading, and metadata work in `~/Sources/Py4GW`. Source: `docs/widget_manager_and_catalog.md` (canonical) and `Py4GWCoreLib/py4gwcorelib_src/WidgetManager.py`.
+How widget discovery, loading, and metadata work in `~/Sources/Py4GW_Reforged`. Source: `docs/ui/widget-manager/widget-manager-and-catalog.md` (canonical) and `Py4GWCoreLib/py4gwcorelib_src/WidgetManager.py`.
 
 The entire widget runtime lives in one module:
 
@@ -141,7 +141,7 @@ Don't reach into `WidgetHandler.widgets` directly from a display UI — go throu
 
 ## Cross-References
 
-- `docs/widget_manager_and_catalog.md` — canonical, 358 lines, file:line precise.
+- `docs/ui/widget-manager/widget-manager-and-catalog.md` — canonical, file:line precise.
 - `Py4GWCoreLib/py4gwcorelib_src/WidgetManager.py` — implementation.
 - `Py4GW_widget_manager.py` — in-client bootstrap that creates the manager INI key and runs discovery.
 - `Widgets/WidgetCatalog/Py4GW_widget_catalog.py` — the catalog UI consumer.

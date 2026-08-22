@@ -4,11 +4,11 @@ The `HeroAI/` package is the headless combat / targeting / follow / interrupt / 
 
 Canonical docs:
 
-- `docs/heroai_combat_handover.md` — combat path direction + hot spots.
-- `FOLLOW_REFACTOR_HANDOVER.md` — required reading before touching `HeroAI/follow/`.
-- `docs/HeroAi_interrupt_feasibility.md` — interrupt subsystem.
-- `docs/hex_removal_architecture_and_authoring.md` — hex removal architecture.
-- `docs/heroai_combat_handover.md` — combat handover doc.
+- `docs/automation/hero-ai/heroai-combat-handover.md` — combat path direction + hot spots.
+- `Examples and tests/tests/FOLLOW_REFACTOR_HANDOVER.md` — required reading before touching `HeroAI/follow/`.
+- `docs/automation/hero-ai/hero-ai-interrupt-feasibility.md` — interrupt subsystem.
+- `docs/automation/hex-removal/hex-removal-architecture-and-authoring.md` — hex removal architecture.
+- `docs/automation/hero-ai/heroai-combat-handover.md` — combat handover doc.
 
 ## Layout
 
@@ -26,12 +26,11 @@ HeroAI/
 │   ├── __init__.py              EXPORTS NOTHING by design
 │   ├── leader_publish.py        leader publishes follow points via shared memory
 │   ├── follower_runtime.py      follower consumes follow points and moves
-│   ├── vector_fields.py         obstacle/avoidance vector fields
-│   ├── editor.py                follow editor UI
-│   └── feature_flags.py         feature flags for the rebuild
+│   ├── smart_unstuck.py         follower stuck detection / recovery
+│   └── editor.py                follow editor UI
 ├── custom_skill.py              CustomSkill bridge — user-defined skill behaviors
 ├── custom_skill_src/
-├── hex_removal.py + hex_removal_src/
+├── hex_removal_src/
 ├── interrupt.py
 ├── call_target.py               team call-target broadcast
 ├── team_viewer_broadcast.py
@@ -107,7 +106,7 @@ def _get_target_effects():
 
 ## Follow Subsystem — Critical Rules
 
-`FOLLOW_REFACTOR_HANDOVER.md` documents a **failed refactor** that destabilized the client. The rebuild must be incremental with checkpoints after every change.
+`Examples and tests/tests/FOLLOW_REFACTOR_HANDOVER.md` documents a **failed refactor** that destabilized the client. The rebuild must be incremental with checkpoints after every change.
 
 ### Rule 1 — Don't touch `SharedMemory.py` early
 
@@ -146,18 +145,15 @@ A previous refactor reduced the quick follow window to a launcher shell. That br
 - Following module stays closed by default.
 - The module is only opened from HeroAI UI.
 
-### Goal Shape (from the handover doc)
-
-When the rebuild is complete:
+### Current Follow Layout
 
 ```
 HeroAI/follow/
 ├── __init__.py            (still exports nothing)
 ├── leader_publish.py      Leader writes follow points to shared memory.
 ├── follower_runtime.py    Follower reads follow points and moves.
-├── vector_fields.py       Obstacle / avoidance vector fields. Own concern.
-├── editor.py              Follow editor UI. Own concern.
-└── feature_flags.py       Flags gating in-progress migrations.
+├── smart_unstuck.py       Follower stuck detection / recovery.
+└── editor.py              Follow editor UI.
 ```
 
 Legacy duplicates (`HeroAI/following.py`, `follow_runtime.py`, `follow_movement.py`, `following_module.py`) are removed **only after** the migration is proven safe.
@@ -166,19 +162,19 @@ Legacy duplicates (`HeroAI/following.py`, `follow_runtime.py`, `follow_movement.
 
 `HeroAI/headless_tree.py` integrates HeroAI with `BottingTree` so bots can drive HeroAI without the standard UI being active. Used by:
 
-- `Sources/modular_bot/` (the real ModularBot implementation).
+- `Py4GWCoreLib/modular/` (the ModularBot implementation).
 - Headless farms that want HeroAI's targeting/combat but no HeroAI windows.
 
 ## Files To Read Before Editing
 
 | If you're editing | Read first |
 |-------------------|------------|
-| `HeroAI/combat.py` | `docs/heroai_combat_handover.md` |
-| `HeroAI/targeting.py` | `docs/heroai_combat_handover.md` |
-| `HeroAI/follow/*` | `FOLLOW_REFACTOR_HANDOVER.md` (mandatory) |
-| `HeroAI/hex_removal*` | `docs/hex_removal_architecture_and_authoring.md` |
-| `HeroAI/interrupt.py` | `docs/HeroAi_interrupt_feasibility.md` |
-| `Py4GWCoreLib/GlobalCache/SharedMemory.py` | `FOLLOW_REFACTOR_HANDOVER.md` rules 1 & 2 |
+| `HeroAI/combat.py` | `docs/automation/hero-ai/heroai-combat-handover.md` |
+| `HeroAI/targeting.py` | `docs/automation/hero-ai/heroai-combat-handover.md` |
+| `HeroAI/follow/*` | `Examples and tests/tests/FOLLOW_REFACTOR_HANDOVER.md` (mandatory) |
+| `HeroAI/hex_removal_src/*` | `docs/automation/hex-removal/hex-removal-architecture-and-authoring.md` |
+| `HeroAI/interrupt.py` | `docs/automation/hero-ai/hero-ai-interrupt-feasibility.md` |
+| `Py4GWCoreLib/GlobalCache/SharedMemory.py` | `Examples and tests/tests/FOLLOW_REFACTOR_HANDOVER.md` rules 1 & 2 |
 
 ## Anti-Patterns
 

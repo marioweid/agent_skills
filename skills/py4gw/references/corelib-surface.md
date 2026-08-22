@@ -2,7 +2,7 @@
 
 Quick-reference index of the `Py4GWCoreLib` modules. Use this to locate the right module before reaching for `grep` or `from Py4GWCoreLib import *`.
 
-Authoritative source: `docs/Py4GW_Conceptual_Model.md`. This file is the working summary for "where does X live?" lookups.
+Authoritative source: `docs/architecture/reference/py4-gw-conceptual-model.md`. This file is the working summary for "where does X live?" lookups.
 
 ## Module → Concerns Map
 
@@ -11,17 +11,17 @@ Authoritative source: `docs/Py4GW_Conceptual_Model.md`. This file is the working
 | `Agent` | Typed-property surface for any world entity (player, NPC, enemy, chest, prop). Sub-views: `living_agent`, `item_agent`, `gadget_agent`. Callback-invalidated property cache. | Reading agent state (hp, energy, position, conditions, profession, allegiance, model id). |
 | `AgentArray` | Authoritative agent collection. Pre-filtered semantic arrays (allies, enemies, neutrals, spirits, minions, NPCs/minipets, items, gadgets, dead allies/enemies). Sublayers: `Manipulation`, `Sort`, `Filter`, `Routines` (cluster detection). | Querying many agents at once; finding nearest enemy / nearest healable ally / cluster centers. |
 | `Camera` | Camera state and control. | Recording angles, scripted camera moves, screenshots. |
-| `CombatEvents` | Combat event hooks (damage taken / dealt, skills cast against, etc.). | Reactive bots: "trigger heal when ally takes >X damage in 2s". |
+| `AgentEvents` | Combat event hooks (damage taken / dealt, skills cast against, etc.), via the `PyAgentEvents` binding. `Py4GWCoreLib/CombatEvents.py` exists but is no longer re-exported by the facade. | Reactive bots: "trigger heal when ally takes >X damage in 2s". |
 | `Context` | Game context: client mode, in-cinematic, observing, runtime flags. | Pre-flight gating: don't try to cast in a cinematic. |
 | `Dialog` + `DialogCatalog` | NPC dialog tree state and lookup. | Quest pickups, faction donations, trader interactions that require dialog selection. |
-| `DXOverlay` | DirectX overlay primitives (3D-world drawing). Sits on top of `Py2DRenderer`. | Drawing world-space markers (e.g. route lines, aggro circles). |
+| `DXOverlay` | DirectX overlay primitives (3D-world drawing). Sits on top of the `PyDXOverlay` binding (legacy `Py2DRenderer`). | Drawing world-space markers (e.g. route lines, aggro circles). |
 | `Effect` (`Effects`) | Buffs / hexes / conditions / environmental statuses on agents. Read-only mostly; can drop a buff from local player, set drunk visuals. | "Does the target have Empathy?" "How long is my Shadow Form remaining?" |
 | `EnemyBlacklist` | Per-bot blacklist of enemy IDs (e.g. "skip this skale, it has resist hexes"). | Bot logic that needs to avoid specific enemies. |
-| `GLOBAL_CACHE` (in `Py4GWcorelib.py`) | Derivative cache layer; re-exposes CoreLib state through cached getters. Also hosts `GLOBAL_CACHE.Coroutines`. | Cheap re-reads inside per-frame logic; coroutine registration. **Not** for new authoritative state. |
+| `GLOBAL_CACHE` (in `Py4GWCoreLib/GlobalCache/GlobalCache.py`) | Derivative cache layer; re-exposes CoreLib state through cached getters. Also hosts `GLOBAL_CACHE.Coroutines` (a plain list — append generators to it). | Cheap re-reads inside per-frame logic; coroutine registration. **Not** for new authoritative state. |
 | `GWUI` | Generic Guild Wars UI helpers (chat, dialogs, ImGui-on-game-canvas). | Drawing on the GW window; sending chat. |
 | `HotkeyManager` | Global hotkey registration. | Letting the user toggle a bot from a keybind. |
 | `ImGui` | Higher-level Dear ImGui wrappers built on `PyImGui`. Contains `WindowModule` — the canonical window shell. | Any widget or bot window. |
-| `IniManager` | INI file read/write helpers. | Persisting bot config without touching the platform INIs. |
+| `Settings` / `JsonFactory` (in `Py4GWCoreLib/py4gwcorelib_src/`) | The mandatory persistence classes — `Settings` for INI, `JsonFactory` for JSON, both native-backed. No other handler may bypass them. | Persisting bot config; never raw `open` / `configparser` / `json` in feature code. |
 | `Inventory` | Bag/storage management. Capacity, free slots, identify, salvage, equip, use, drop, destroy, pick up, storage open/check. | All bag operations. |
 | `Item` | Per-item introspection: `Rarity`, `Properties`, `Type`, `Usage`, `Customization`, `Trade`. Modifier inspection. | "Is this item gold rarity?" "Does this scroll grant XP?" |
 | `ItemArray` | Cross-bag item collection. Sublayers: `Filter`, `Manipulation`, `Sort`. Bag discovery helpers. | Listing all items in bags + storage; filtering for salvageables. |
@@ -94,7 +94,7 @@ The package `__init__.py` re-exports most subpackages. `from Py4GWCoreLib import
 Before assuming a name is exported via `*`:
 
 ```bash
-rg 'from \.\w+ import' /Users/mario/Sources/Py4GW/Py4GWCoreLib/__init__.py
+rg 'from \.\w+ import' Py4GWCoreLib/__init__.py
 ```
 
 If you need a name that isn't re-exported, import it explicitly from the submodule.
