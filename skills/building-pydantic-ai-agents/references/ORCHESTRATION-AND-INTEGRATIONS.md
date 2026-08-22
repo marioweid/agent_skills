@@ -9,8 +9,8 @@ Use agent delegation when one agent should call another and return the result.
 ```python
 from pydantic_ai import Agent, RunContext
 
-parent = Agent('openai:gpt-5.2')
-researcher = Agent('openai:gpt-5.2', output_type=str)
+parent = Agent('openai:gpt-5')
+researcher = Agent('anthropic:claude-sonnet', output_type=str)
 
 
 @parent.tool
@@ -65,7 +65,7 @@ from pydantic_ai import ModelRequest
 from pydantic_ai.direct import model_request_sync
 
 response = model_request_sync(
-    'openai:gpt-5.2',
+    '<provider>:<model>',
     [ModelRequest.user_text_prompt('Summarize this in one sentence.')],
 )
 ```
@@ -81,7 +81,7 @@ from fasta2a.pydantic_ai import agent_to_a2a
 
 from pydantic_ai import Agent
 
-agent = Agent('openai:gpt-5.2')
+agent = Agent('<provider>:<model>')
 app = agent_to_a2a(agent)
 ```
 
@@ -106,7 +106,7 @@ Use `Embedder(...)` for query/document embeddings when the user is building retr
 ```python
 from pydantic_ai import Embedder
 
-embedder = Embedder('openai:text-embedding-3-small')
+embedder = Embedder('<provider>:<model>')
 ```
 
 ## Use LangChain or ACI.dev Tools

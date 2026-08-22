@@ -134,7 +134,7 @@ Quick checks:
 rg -tpy 'def MyFunctionName' Py4GWCoreLib/
 
 # Find every caller of a function:
-rg -tpy 'MyFunctionName\(' --type-add 'py4gw:Bots,Sources,Examples,Widgets,HeroAI'
+rg -tpy 'MyFunctionName\(' Bots Sources Examples Widgets HeroAI
 
 # Find every widget folder (marked):
 fd -t f '\.widget$' Widgets/

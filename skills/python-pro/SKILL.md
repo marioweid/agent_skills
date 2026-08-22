@@ -24,11 +24,12 @@ Trigger on:
 - Writing or reviewing Python code in any project where the user's global standards apply (default for this user).
 - Adding type hints, configuring `ty` in strict mode, designing Protocols / generics / branded types.
 - Writing pytest suites — especially when the user mentions edges, errors, property-based, or mutation testing.
-- Setting up a new Python project (`uv venv`, `pyproject.toml`, ruff config, ty config).
 - Refactoring async code (`asyncio`, task groups, structured concurrency).
 - Packaging questions (`uv_build` vs `hatchling`, hash pinning, supply chain).
 
-Do **not** trigger on framework-specific work that has its own skill — FastAPI work goes to `fastapi-expert`, Django to `django-expert` (if added), etc. This skill stays general-purpose.
+**Scaffolding a project from scratch, migrating tooling, or setting up a standalone PEP 723 script?** Use `modern-python` for that — it owns `uv init`, `pyproject.toml` layout, ruff/ty config, migration guides, prek, and CI security tooling. Come back here for writing the code that goes in it. The two share a toolchain (uv / ruff / ty) and testing philosophy; `modern-python` defers to this skill's Testing Philosophy — neither uses code coverage.
+
+Do **not** trigger on framework-specific work that has its own skill — FastAPI work goes to `fastapi`, Pydantic AI agents to `building-pydantic-ai-agents`. This skill stays general-purpose.
 
 ## Toolchain (Maps to `~/.claude/CLAUDE.md`)
 
@@ -117,9 +118,19 @@ How dependencies enter your code, once you've decided the units above.
 
 This section deliberately differs from the old skill body. The user's global standards push back against several common pytest practices.
 
+**The point of a test is to catch a real change in behavior — not to touch a line.** A hundred tests that all pass while a broken function returns the wrong answer are worthless; one test that fails the moment the contract breaks is the whole game. Test the important logic and the contracts, never chase coverage.
+
 ### Test behavior, not implementation
 
 If a refactor breaks your tests but not your code, the tests were wrong. Tests that assert on internal call patterns, private method invocations, or mock-internal state are testing implementation, not behavior.
+
+**Pin the contract, not the shape of the input.** A function's contract is "for input X I get result Y." If you change *how* the input is passed but the meaning is the same — two positional `int`s become one `(int, int)` tuple, a dict replaces kwargs, a list replaces a generator — the result must stay `Y`. That invariance is what the test guards; it should keep passing across the refactor and fail only if the actual behavior changed.
+
+```python
+def test_same_result_for_equivalent_inputs() -> None:
+    # Contract: the two call shapes mean the same thing → same result.
+    assert combine(2, 3) == combine((2, 3)) == 5
+```
 
 ### Test edges and errors, not just the happy path
 
@@ -170,9 +181,9 @@ def test_sort_is_idempotent(xs: list[int]) -> None:
 
 Use property-based tests as a *complement* to example-based tests, not a replacement. Example tests document expected behavior; property tests find counter-examples.
 
-### Don't chase coverage %
+### Don't measure code coverage at all
 
-A 95%-covered codebase with no edge-case or error-path tests is more dangerous than a 70%-covered codebase that actually exercises failure modes. **Mutation score > coverage %.** When asked about coverage targets, redirect to mutation testing.
+Code coverage measures which lines *ran*, not whether a test would *fail* if the code were wrong — so it rewards writing many shallow tests that execute code without asserting the contract. Don't add `pytest-cov`, don't set a `--cov-fail-under` gate, don't chase a %. A 95%-covered codebase with no edge-case or error-path assertions is more dangerous than a 70%-covered one that actually exercises failure modes. When asked about coverage targets, redirect to mutation testing — it's the only measure that answers "do these tests catch bugs?"
 
 ## Reference Guide
 

@@ -40,7 +40,7 @@ myproject/
 
 module github.com/user/myproject
 
-go 1.21
+go 1.24
 
 require (
     github.com/gin-gonic/gin v1.9.1
@@ -190,7 +190,7 @@ monorepo/
         └── user.go
 
 // go.work
-go 1.21
+go 1.24
 
 use (
     ./services/api
@@ -207,7 +207,7 @@ use (
 ## Build Tags and Constraints
 
 ```go
-// +build integration
+//go:build integration
 // integration_test.go
 
 package myapp
@@ -256,11 +256,7 @@ build:
 
 # Run tests
 test:
-	$(GO) test -v -race -coverprofile=coverage.out ./...
-
-# Run tests with coverage report
-test-coverage: test
-	$(GO) tool cover -html=coverage.out
+	$(GO) test -v -race ./...
 
 # Run linters
 lint:
@@ -278,7 +274,6 @@ run:
 # Clean build artifacts
 clean:
 	rm -rf $(BUILD_DIR)
-	rm -f coverage.out
 
 # Install dependencies
 deps:
@@ -308,7 +303,6 @@ help:
 	@echo "Available targets:"
 	@echo "  build         - Build the application"
 	@echo "  test          - Run tests"
-	@echo "  test-coverage - Run tests with coverage report"
 	@echo "  lint          - Run linters"
 	@echo "  fmt           - Format code"
 	@echo "  run           - Run the application"
@@ -320,7 +314,7 @@ help:
 
 ```dockerfile
 # Build stage
-FROM golang:1.21-alpine AS builder
+FROM golang:1.24-alpine AS builder
 
 WORKDIR /app
 
@@ -404,12 +398,12 @@ type UserRepository interface {
 package tools
 
 import (
-    _ "github.com/golang/mock/mockgen"
+    _ "go.uber.org/mock/mockgen"
     _ "golang.org/x/tools/cmd/stringer"
 )
 
 // Install tools:
-// go install github.com/golang/mock/mockgen@latest
+// go install go.uber.org/mock/mockgen@latest
 
 // Run generate:
 // go generate ./...

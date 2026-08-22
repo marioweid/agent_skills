@@ -3,8 +3,6 @@ name: typescript-pro
 description: Implements advanced TypeScript type systems, creates custom type guards, utility types, and branded types, and configures tRPC for end-to-end type safety. Use when building TypeScript applications requiring advanced generics, conditional or mapped types, discriminated unions, monorepo setup, or full-stack type safety with tRPC.
 license: MIT
 metadata:
-  author: https://github.com/Jeffallan
-  version: "1.1.0"
   domain: language
   triggers: TypeScript, generics, type safety, conditional types, mapped types, tRPC, tsconfig, type guards, discriminated unions
   role: specialist
@@ -21,7 +19,22 @@ metadata:
 2. **Design type-first APIs** - Create branded types, generics, utility types
 3. **Implement with type safety** - Write type guards, discriminated unions, conditional types; run `tsc --noEmit` to catch type errors before proceeding
 4. **Optimize build** - Configure project references, incremental compilation, tree shaking; re-run `tsc --noEmit` to confirm zero errors after changes
-5. **Test types** - Confirm type coverage with a tool like `type-coverage`; validate that all public APIs have explicit return types; iterate on steps 3–4 until all checks pass
+5. **Test & verify** - Write colocated `*.test.ts` files and run them with `vitest`; lint with `oxlint`, format with `oxfmt`, and confirm type coverage plus explicit return types on public APIs; iterate on steps 3–4 until all checks pass
+
+## Tooling
+
+Runtime: **Node 22 LTS**, ESM only (`"type": "module"` in `package.json`).
+
+| Purpose | Tool | Command |
+|---------|------|---------|
+| Lint | `oxlint` | `oxlint` (enable `typescript`, `import`, `unicorn` plugins) |
+| Format | `oxfmt` | `oxfmt` |
+| Test | `vitest` | `vitest` (colocated `*.test.ts` files) |
+| Types | `tsc` | `tsc --noEmit` |
+
+Use `oxlint`/`oxfmt` over ESLint/Prettier and `vitest` over Jest — they are faster and stricter.
+
+**Supply chain:** run `pnpm audit --audit-level=moderate` before installing; pin exact versions (no `^`/`~`); enforce a publish delay (`pnpm config set minimumReleaseAge 1440`); block install scripts (`pnpm config set ignore-scripts true`).
 
 ## Reference Guide
 
@@ -99,13 +112,15 @@ type RequireExactlyOne<T, Keys extends keyof T = keyof T> =
     "moduleResolution": "NodeNext",
     "strict": true,
     "noUncheckedIndexedAccess": true,
-    "noImplicitOverride": true,
     "exactOptionalPropertyTypes": true,
+    "noImplicitOverride": true,
+    "noPropertyAccessFromIndexSignature": true,
+    "verbatimModuleSyntax": true,
     "isolatedModules": true,
     "declaration": true,
     "declarationMap": true,
     "incremental": true,
-    "skipLibCheck": false
+    "skipLibCheck": true
   }
 }
 ```
@@ -152,5 +167,3 @@ When implementing TypeScript features, provide:
 ## Knowledge Reference
 
 TypeScript 5.0+, generics, conditional types, mapped types, template literal types, discriminated unions, type guards, branded types, tRPC, project references, incremental compilation, declaration files, const assertions, satisfies operator
-
-[Documentation](https://jeffallan.github.io/claude-skills/skills/language/typescript-pro/)

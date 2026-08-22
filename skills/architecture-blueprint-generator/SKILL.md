@@ -5,6 +5,8 @@ description: 'Comprehensive project architecture blueprint generator that analyz
 
 # Comprehensive Project Architecture Blueprint Generator
 
+> **How to read this skill.** The `${VAR="a|b|c"}` entries below are human-set knobs — pick one option from each list (or leave the default) to shape the blueprint. The `${VAR == "x" ? "..." : "..."}` ternaries in the Generated Prompt are illustrative: they show which instruction applies for the knob you chose. Nothing substitutes these automatically, so treat them as "if the knob is X, do the first thing; otherwise do the second" and follow the branch that matches your selection.
+
 ## Configuration Variables
 ${PROJECT_TYPE="Auto-detect|.NET|Java|React|Angular|Python|Node.js|Flutter|Other"} <!-- Primary technology -->
 ${ARCHITECTURE_PATTERN="Auto-detect|Clean Architecture|Microservices|Layered|MVVM|MVC|Hexagonal|Event-Driven|Serverless|Monolithic|Other"} <!-- Primary architectural pattern -->

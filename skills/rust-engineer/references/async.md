@@ -20,12 +20,13 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     Ok(())
 }
 
-// Manual runtime creation
-fn main() {
-    let runtime = tokio::runtime::Runtime::new().unwrap();
+// Manual runtime creation — `?` surfaces a runtime build failure
+fn main() -> std::io::Result<()> {
+    let runtime = tokio::runtime::Runtime::new()?;
     runtime.block_on(async {
-        println!("Hello from async context");
+        // async work here
     });
+    Ok(())
 }
 ```
 
@@ -57,8 +58,8 @@ async fn concurrent_with_errors() -> Result<(), Box<dyn std::error::Error>> {
     Ok(())
 }
 
-// Spawning tasks
-async fn spawn_tasks() {
+// Spawning tasks — propagate the JoinError instead of unwrapping it
+async fn spawn_tasks() -> Result<(), tokio::task::JoinError> {
     let handle1 = tokio::spawn(async {
         // This runs on a separate task
         expensive_computation().await
@@ -68,9 +69,10 @@ async fn spawn_tasks() {
         another_computation().await
     });
 
-    // Wait for both to complete
-    let result1 = handle1.await.unwrap();
-    let result2 = handle2.await.unwrap();
+    // Wait for both to complete; `?` surfaces a panicked/cancelled task
+    let result1 = handle1.await?;
+    let result2 = handle2.await?;
+    Ok(())
 }
 ```
 
@@ -162,56 +164,63 @@ async fn process_stream() {
 use tokio::sync::{mpsc, oneshot, broadcast, watch};
 
 // mpsc: multiple producer, single consumer
-async fn mpsc_example() {
+async fn mpsc_example() -> Result<(), Box<dyn std::error::Error>> {
     let (tx, mut rx) = mpsc::channel(32);
 
-    tokio::spawn(async move {
-        tx.send("Hello").await.unwrap();
-        tx.send("World").await.unwrap();
+    let producer = tokio::spawn(async move {
+        tx.send("Hello").await?;
+        tx.send("World").await?;
+        Ok::<_, mpsc::error::SendError<&str>>(())
     });
 
     while let Some(msg) = rx.recv().await {
         println!("Received: {}", msg);
     }
+    producer.await??; // surface a JoinError and any SendError
+    Ok(())
 }
 
 // oneshot: single value, one-time use
-async fn oneshot_example() {
+async fn oneshot_example() -> Result<(), oneshot::error::RecvError> {
     let (tx, rx) = oneshot::channel();
 
     tokio::spawn(async move {
-        tx.send("Result").unwrap();
+        // send fails only if the receiver was dropped; nothing awaits it here
+        let _ = tx.send("Result");
     });
 
-    let result = rx.await.unwrap();
+    let result = rx.await?; // Err if the sender was dropped before sending
     println!("Got: {}", result);
+    Ok(())
 }
 
 // broadcast: multiple producers, multiple consumers
-async fn broadcast_example() {
+async fn broadcast_example() -> Result<(), broadcast::error::RecvError> {
     let (tx, mut rx1) = broadcast::channel(16);
     let mut rx2 = tx.subscribe();
 
     tokio::spawn(async move {
-        tx.send("Message").unwrap();
+        let _ = tx.send("Message"); // Err only if there are no receivers
     });
 
-    println!("rx1: {}", rx1.recv().await.unwrap());
-    println!("rx2: {}", rx2.recv().await.unwrap());
+    println!("rx1: {}", rx1.recv().await?);
+    println!("rx2: {}", rx2.recv().await?);
+    Ok(())
 }
 
 // watch: single producer, multiple consumers (last value)
-async fn watch_example() {
+async fn watch_example() -> Result<(), Box<dyn std::error::Error>> {
     let (tx, mut rx) = watch::channel("initial");
 
-    tokio::spawn(async move {
-        loop {
-            rx.changed().await.unwrap();
-            println!("Value changed to: {}", *rx.borrow());
-        }
+    let consumer = tokio::spawn(async move {
+        rx.changed().await?; // Err if all senders are dropped
+        println!("Value changed to: {}", *rx.borrow());
+        Ok::<_, watch::error::RecvError>(())
     });
 
-    tx.send("updated").unwrap();
+    let _ = tx.send("updated"); // Err only if there are no receivers
+    consumer.await??; // surface a JoinError and any RecvError
+    Ok(())
 }
 ```
 
@@ -222,7 +231,7 @@ use std::sync::Arc;
 use tokio::sync::{Mutex, RwLock};
 
 // Mutex for exclusive access
-async fn mutex_example() {
+async fn mutex_example() -> Result<(), tokio::task::JoinError> {
     let data = Arc::new(Mutex::new(0));
 
     let mut handles = vec![];
@@ -237,10 +246,11 @@ async fn mutex_example() {
     }
 
     for handle in handles {
-        handle.await.unwrap();
+        handle.await?; // propagate a panicked task instead of unwrapping
     }
 
     println!("Final value: {}", *data.lock().await);
+    Ok(())
 }
 
 // RwLock for read-write patterns
@@ -267,12 +277,14 @@ async fn rwlock_example() {
 }
 ```
 
-## Async Traits (with async-trait)
+## Async Traits
+
+Native `async fn` in traits is stable (since Rust 1.75) — prefer it. No macro, no boxing on
+the happy path. Reach for the `async-trait` crate only when you need `dyn` dispatch
+(`Box<dyn AsyncRepository>`), which native async-fn-in-trait does not yet support.
 
 ```rust
-use async_trait::async_trait;
-
-#[async_trait]
+// Preferred: native async fn in trait (static dispatch)
 trait AsyncRepository {
     async fn find_by_id(&self, id: u64) -> Result<User, Error>;
     async fn save(&self, user: User) -> Result<(), Error>;
@@ -282,7 +294,6 @@ struct DatabaseRepository {
     pool: sqlx::PgPool,
 }
 
-#[async_trait]
 impl AsyncRepository for DatabaseRepository {
     async fn find_by_id(&self, id: u64) -> Result<User, Error> {
         sqlx::query_as("SELECT * FROM users WHERE id = $1")
@@ -300,6 +311,21 @@ impl AsyncRepository for DatabaseRepository {
             .await?;
         Ok(())
     }
+}
+```
+
+```rust
+// Only when you need trait objects: annotate both trait and impl with #[async_trait].
+// This boxes the returned futures, so keep it to dyn-dispatch call sites.
+use async_trait::async_trait;
+
+#[async_trait]
+trait DynRepository {
+    async fn find_by_id(&self, id: u64) -> Result<User, Error>;
+}
+
+fn make_repo(pool: sqlx::PgPool) -> Box<dyn DynRepository> {
+    Box::new(DatabaseRepository { pool })
 }
 ```
 
@@ -359,20 +385,21 @@ async fn background_task(mut shutdown: tokio::sync::watch::Receiver<bool>) {
 }
 
 #[tokio::main]
-async fn main() {
+async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let (shutdown_tx, shutdown_rx) = tokio::sync::watch::channel(false);
 
     let task = tokio::spawn(background_task(shutdown_rx));
 
     // Wait for ctrl-c
-    signal::ctrl_c().await.unwrap();
+    signal::ctrl_c().await?;
     println!("Received shutdown signal");
 
-    // Signal shutdown
-    shutdown_tx.send(true).unwrap();
+    // Signal shutdown (Err only if the receiver was dropped)
+    shutdown_tx.send(true)?;
 
-    // Wait for task to complete
-    task.await.unwrap();
+    // Wait for task to complete, surfacing a panicked task
+    task.await?;
+    Ok(())
 }
 ```
 
@@ -413,30 +440,30 @@ async fn robust_operation() -> Result<String, AsyncError> {
 
 ```rust
 // Custom runtime configuration
-fn main() {
+fn main() -> std::io::Result<()> {
     let runtime = tokio::runtime::Builder::new_multi_thread()
         .worker_threads(4)
         .thread_name("my-worker")
         .thread_stack_size(3 * 1024 * 1024)
         .enable_all()
-        .build()
-        .unwrap();
+        .build()?;
 
     runtime.block_on(async {
         println!("Running on custom runtime");
     });
+    Ok(())
 }
 
 // Current-thread runtime (single-threaded)
-fn single_threaded() {
+fn single_threaded() -> std::io::Result<()> {
     let runtime = tokio::runtime::Builder::new_current_thread()
         .enable_all()
-        .build()
-        .unwrap();
+        .build()?;
 
     runtime.block_on(async {
         println!("Single-threaded async");
     });
+    Ok(())
 }
 ```
 
@@ -451,7 +478,7 @@ fn single_threaded() {
 - Avoid holding locks across .await points
 - Use timeout for all external I/O operations
 - Implement graceful shutdown with channels
-- Use async-trait for trait-based async code
+- Use native async fn in traits (stable since 1.75); reach for `async-trait` only for `dyn` dispatch
 - Prefer try_join! over manual error handling
 - Use Arc<Mutex<T>> sparingly (channels often better)
 - Test async code with tokio::test macro

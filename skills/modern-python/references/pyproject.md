@@ -13,15 +13,13 @@ version = "0.1.0"
 description = "A modern Python project"
 readme = "README.md"
 license = "MIT"
-requires-python = ">=3.11"
+requires-python = ">=3.13"
 authors = [
     { name = "Your Name", email = "you@example.com" }
 ]
 classifiers = [
     "Development Status :: 4 - Beta",
     "Programming Language :: Python :: 3",
-    "Programming Language :: Python :: 3.11",
-    "Programming Language :: Python :: 3.12",
     "Programming Language :: Python :: 3.13",
 ]
 dependencies = [
@@ -47,7 +45,7 @@ build-backend = "uv_build"
 
 [dependency-groups]
 dev = ["ruff", "ty"]
-test = ["pytest", "pytest-cov", "hypothesis"]
+test = ["pytest", "hypothesis", "mutmut"]
 docs = ["sphinx", "myst-parser"]
 
 [tool.uv]
@@ -55,7 +53,7 @@ default-groups = ["dev", "test"]
 
 [tool.ruff]
 line-length = 100
-target-version = "py311"
+target-version = "py313"
 src = ["src"]
 
 [tool.ruff.lint]
@@ -65,6 +63,16 @@ ignore = [
     "COM812",   # trailing comma (conflicts with formatter)
     "ISC001",   # implicit string concat (conflicts with formatter)
 ]
+
+# Enforce the ≤8 complexity / ≤5 positional-args hard limits (C90 + PLR are
+# already selected via "ALL"; mccabe requires C90 to be selected to take effect).
+[tool.ruff.lint.mccabe]
+max-complexity = 8
+
+[tool.ruff.lint.pylint]
+max-args = 5
+max-branches = 12
+max-returns = 6
 
 [tool.ruff.lint.per-file-ignores]
 "tests/**/*.py" = [
@@ -78,25 +86,13 @@ quote-style = "double"
 indent-style = "space"
 docstring-code-format = true
 
-[tool.pytest]
+[tool.pytest.ini_options]
 testpaths = ["tests"]
 pythonpath = ["src"]
 addopts = [
-    "--cov=myproject",
-    "--cov-report=term-missing",
-    "--cov-fail-under=80",
-]
-
-[tool.coverage.run]
-branch = true
-source = ["src/myproject"]
-
-[tool.coverage.report]
-exclude_lines = [
-    "pragma: no cover",
-    "if TYPE_CHECKING:",
-    "if __name__ == .__main__.:",
-]
+    "-ra",
+    "--strict-markers",
+]  # no code coverage — test behavior + mutation testing; see python-pro's Testing Philosophy
 ```
 
 ## Section Reference
@@ -167,7 +163,7 @@ Development dependencies (PEP 735). Unlike optional-dependencies, these are NOT 
 [dependency-groups]
 dev = [{include-group = "lint"}, {include-group = "test"}, {include-group = "audit"}]
 lint = ["ruff", "ty"]
-test = ["pytest", "pytest-cov"]
+test = ["pytest", "hypothesis"]
 audit = ["pip-audit"]
 docs = ["sphinx", "myst-parser"]
 ```
@@ -217,7 +213,7 @@ async = ["httpx"]
 
 [dependency-groups]
 dev = ["ruff", "ty"]
-test = ["pytest", "pytest-cov"]
+test = ["pytest", "hypothesis"]
 ```
 
 ### Application Package

@@ -11,7 +11,7 @@ from pydantic_ai import Agent
 from pydantic_ai.capabilities import Thinking, WebSearch
 
 agent = Agent(
-    'anthropic:claude-opus-4-6',
+    '<provider>:<model>',
     capabilities=[
         Thinking(effort='high'),
         WebSearch(),
@@ -37,8 +37,8 @@ Use the unified `Thinking` capability or the `thinking` model setting.
 from pydantic_ai import Agent
 from pydantic_ai.capabilities import Thinking
 
-agent = Agent('anthropic:claude-opus-4-6', capabilities=[Thinking(effort='high')])
-agent = Agent('anthropic:claude-opus-4-6', model_settings={'thinking': 'high'})
+agent = Agent('<provider>:<model>', capabilities=[Thinking(effort='high')])
+agent = Agent('<provider>:<model>', model_settings={'thinking': 'high'})
 ```
 
 Supported effort values:
@@ -83,7 +83,7 @@ async def audit_tool(
     return args
 
 
-agent = Agent('openai:gpt-5.2', capabilities=[hooks])
+agent = Agent('<provider>:<model>', capabilities=[hooks])
 ```
 
 Important hook families:

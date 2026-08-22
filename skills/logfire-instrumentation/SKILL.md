@@ -175,9 +175,11 @@ import * as logfire from '@pydantic/logfire-node'
 logfire.configure()
 ```
 
-Launch with: `node --require ./instrumentation.js app.js`
+Launch with (ESM): `node --import ./instrumentation.js app.js`
 
 The SDK auto-instruments common libraries when loaded before the app. Set `LOGFIRE_TOKEN` in your environment or pass `token` to `configure()`.
+
+Call `logfire.shutdown()` before the process exits (e.g. in a shutdown handler) to flush any buffered spans.
 
 **Cloudflare Workers** - wrap your handler with `instrument()`:
 
@@ -196,6 +198,8 @@ OTEL_EXPORTER_OTLP_TRACES_ENDPOINT=https://logfire-api.pydantic.dev/v1/traces
 OTEL_EXPORTER_OTLP_HEADERS=Authorization=<your-write-token>
 ```
 
+New projects are region-scoped: use the region host for your project (`logfire-us.pydantic.dev` or `logfire-eu.pydantic.dev`) instead of the generic `logfire-api.pydantic.dev`.
+
 ### Structured Logging (JS/TS)
 
 ```typescript
@@ -203,12 +207,15 @@ OTEL_EXPORTER_OTLP_HEADERS=Authorization=<your-write-token>
 logfire.info('Created user', { user_id: uid })
 logfire.error('Payment failed', { amount: 100, currency: 'USD' })
 
-// Spans
-logfire.span('Processing order', { order_id }, {}, async () => {
-  logfire.info('Processing step completed')
+// Spans - single options object with attributes and callback
+await logfire.span('Processing order', {
+  attributes: { order_id },
+  callback: async () => {
+    logfire.info('Processing step completed')
+  },
 })
 
-// Error reporting
+// Error reporting (verify against current @pydantic/logfire-node docs)
 logfire.reportError('order processing', error)
 ```
 
@@ -222,7 +229,7 @@ Log levels: `trace`, `debug`, `info`, `notice`, `warn`, `error`, `fatal`.
 
 ```toml
 [dependencies]
-logfire = "0.6"
+logfire = "0.9"
 ```
 
 ### Configure

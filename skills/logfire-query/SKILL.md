@@ -149,11 +149,7 @@ FROM records WHERE is_exception GROUP BY service_name ORDER BY errors DESC
 
 ## UI Links After Querying
 
-If the user explicitly asks for both analysis and a Logfire link, finish the query analysis first, then use a Logfire link only for the known result:
-
-- For a known `trace_id`, use `project_logfire_link(trace_id=trace_id, project=project, handoff=True)` only when the user asked to open it immediately in the browser. Use `project_logfire_link(trace_id=trace_id, project=project)` for a durable or shareable URL.
-- For a project/filter view, use the `logfire-ui` routing rules.
-- Do not open the browser unless the user asked to open the link.
+If the user asks for both analysis and a Logfire link, finish the query analysis first, then defer all link, browser, and handoff behavior to the `logfire-ui` skill and its routing rules.
 
 For a span-count prompt, provide SQL like this when the user wants an aggregate query or analysis:
 

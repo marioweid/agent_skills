@@ -1,8 +1,5 @@
 # Context Management
 
-<!-- Content adapted from PR #168 (context-engineer skill) by Genius-apple (https://github.com/Genius-apple). -->
-<!-- Original submission: https://github.com/Jeffallan/claude-skills/pull/168 -->
-
 ---
 
 ## When to Use This Reference
@@ -193,6 +190,5 @@ Measure context management effectiveness with:
 
 ## Related Skills
 
-- **RAG Architect** — Vector search, chunking, and retrieval pipeline design
-- **Architecture Designer** — System-level context flow in multi-agent architectures
-- **Debugging Wizard** — Diagnosing agent behavior failures that may be context-related
+- **building-pydantic-ai-agents** — Context flow and history management in multi-agent architectures
+- **python-pro** — Implementing context-window management and token accounting in Python

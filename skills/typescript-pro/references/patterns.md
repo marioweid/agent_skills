@@ -56,8 +56,8 @@ function createBuilder<T>(): Builder<T> {
       }
       if (prop.startsWith('set')) {
         const key = prop.slice(3).toLowerCase();
-        return (value: any) => {
-          (data as any)[key] = value;
+        return (value: unknown) => {
+          (data as Record<string, unknown>)[key] = value;
           return this;
         };
       }
@@ -110,10 +110,10 @@ const consoleLogger = LoggerFactory.create({ type: 'console' });
 const fileLogger = LoggerFactory.create({ type: 'file', filename: 'app.log' });
 
 // Generic factory with dependency injection
-type Constructor<T> = new (...args: any[]) => T;
+type Constructor<T> = new (...args: never[]) => T;
 
 class Container {
-  private instances = new Map<Constructor<any>, any>();
+  private instances = new Map<Constructor<unknown>, unknown>();
 
   register<T>(token: Constructor<T>, instance: T): void {
     this.instances.set(token, instance);
@@ -124,7 +124,7 @@ class Container {
     if (!instance) {
       throw new Error(`No instance registered for ${token.name}`);
     }
-    return instance;
+    return instance as T;
   }
 }
 ```
@@ -237,8 +237,8 @@ class ApiClient {
   ): Promise<
     ApiEndpoints[Path][Method] extends { response: infer R } ? R : never
   > {
-    // Make HTTP request
-    return null as any;
+    // Make the HTTP request; stubbed for the example
+    throw new Error('not implemented');
   }
 }
 
@@ -260,7 +260,7 @@ type State = 'idle' | 'loading' | 'success' | 'error';
 
 type Event =
   | { type: 'FETCH' }
-  | { type: 'SUCCESS'; data: any }
+  | { type: 'SUCCESS'; data: unknown }
   | { type: 'ERROR'; error: Error }
   | { type: 'RETRY' };
 
@@ -305,43 +305,39 @@ manager.dispatch({ type: 'SUCCESS', data: {} }); // 'success'
 ## Decorator Pattern
 
 ```typescript
-// Method decorators with type safety
-function Log(
-  target: any,
-  propertyKey: string,
-  descriptor: PropertyDescriptor
-) {
-  const originalMethod = descriptor.value;
+// TS 5.0+ standard (TC39) method decorators — no experimentalDecorators required.
+// Each receives the original method plus a typed ClassMethodDecoratorContext and
+// returns a replacement method.
+type Method<This, Args extends unknown[], Return> = (this: This, ...args: Args) => Return;
 
-  descriptor.value = function (...args: any[]) {
-    console.log(`Calling ${propertyKey} with`, args);
-    const result = originalMethod.apply(this, args);
-    console.log(`Result:`, result);
+function Log<This, Args extends unknown[], Return>(
+  target: Method<This, Args, Return>,
+  context: ClassMethodDecoratorContext<This, Method<This, Args, Return>>
+): Method<This, Args, Return> {
+  const name = String(context.name);
+  return function (this: This, ...args: Args): Return {
+    const result = target.call(this, ...args);
+    // A logging decorator's sink is its whole purpose; swap for your logger.
+    console.log(`${name}(${JSON.stringify(args)}) ->`, result);
     return result;
   };
-
-  return descriptor;
 }
 
-function Memoize(
-  target: any,
-  propertyKey: string,
-  descriptor: PropertyDescriptor
-) {
-  const originalMethod = descriptor.value;
-  const cache = new Map<string, any>();
-
-  descriptor.value = function (...args: any[]) {
+function Memoize<This, Args extends unknown[], Return>(
+  target: Method<This, Args, Return>,
+  _context: ClassMethodDecoratorContext<This, Method<This, Args, Return>>
+): Method<This, Args, Return> {
+  const cache = new Map<string, Return>();
+  return function (this: This, ...args: Args): Return {
     const key = JSON.stringify(args);
-    if (cache.has(key)) {
-      return cache.get(key);
+    const cached = cache.get(key);
+    if (cached !== undefined) {
+      return cached;
     }
-    const result = originalMethod.apply(this, args);
+    const result = target.call(this, ...args);
     cache.set(key, result);
     return result;
   };
-
-  return descriptor;
 }
 
 class Calculator {
@@ -386,9 +382,9 @@ async function fetchUser(id: string): Promise<Result<User, string>> {
 // Usage with pattern matching
 const result = await fetchUser('123');
 if (result.success) {
-  console.log(result.value.name); // Type-safe access
+  const name = result.value.name; // Type-safe access, narrowed to User
 } else {
-  console.error(result.error); // Type-safe error
+  const message = result.error; // Type-safe error, narrowed to string
 }
 
 // Either monad

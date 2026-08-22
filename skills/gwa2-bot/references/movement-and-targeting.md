@@ -31,7 +31,7 @@ Func MoveTo($X, $Y, $precision = 25, $random = 50, $doWhileRunning = Null)
             $destinationX = $X + Random(-$random, $random)
             $destinationY = $Y + Random(-$random, $random)
             Move($destinationX, $destinationY, 0)
-        WEnd
+        EndIf
         $me = GetMyAgent()
         If GetMapID() <> $mapID Then ExitLoop
         If DllStructGetData($me, 'HealthPercent') <= 0 Then Return False

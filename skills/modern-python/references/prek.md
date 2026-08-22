@@ -74,7 +74,7 @@ For a complete, copy-paste-ready configuration, see [templates/pre-commit-config
 ```yaml
 # See https://pre-commit.com for more information
 default_language_version:
-  python: python3.12
+  python: python3.13
 
 repos:
   # Ruff - linting and formatting

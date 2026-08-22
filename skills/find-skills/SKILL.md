@@ -45,8 +45,8 @@ When a user asks for help with something, identify:
 Before running a CLI search, check the [skills.sh leaderboard](https://skills.sh/) to see if a well-known skill already exists for the domain. The leaderboard ranks skills by total installs, surfacing the most popular and battle-tested options.
 
 For example, top skills for web development include:
-- `vercel-labs/agent-skills` — React, Next.js, web design (100K+ installs each)
-- `anthropics/skills` — Frontend design, document processing (100K+ installs)
+- `vercel-labs/agent-skills` — React, Next.js, web design
+- `anthropics/skills` — Frontend design, document processing
 
 ### Step 3: Search for Skills
 
@@ -84,7 +84,6 @@ Example response:
 ```
 I found a skill that might help! The "react-best-practices" skill provides
 React and Next.js performance optimization guidelines from Vercel Engineering.
-(185K installs)
 
 To install it:
 npx skills add vercel-labs/agent-skills@react-best-practices
