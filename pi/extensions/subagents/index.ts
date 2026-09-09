@@ -13,7 +13,8 @@
  * - subagent_list: list all subagents.
  *
  * Unawaited subagents queue their result as a follow-up message when they
- * settle. `/subagents` opens a picker + full interactive takeover view.
+ * settle. Live state is published on the activity channel; `/sessions` (the
+ * session tree) is where you watch and enter a child.
  *
  * Architecture: Effect v4 generators throughout (backends -> manager ->
  * runtime); this file is the async boundary where tool handlers run effects
@@ -27,7 +28,6 @@ import * as path from "node:path";
 import { StringEnum } from "@earendil-works/pi-ai";
 import type {
   ExtensionAPI,
-  ExtensionCommandContext,
   ExtensionContext,
   ExtensionUIContext,
 } from "@earendil-works/pi-coding-agent";
@@ -38,19 +38,13 @@ import {
   getAgentDir,
   getMarkdownTheme,
   ProjectTrustStore,
-  SessionManager,
   truncateHead,
 } from "@earendil-works/pi-coding-agent";
 import { Markdown, Text } from "@earendil-works/pi-tui";
 import { Type } from "typebox";
 import { applyRole, loadAgentRoles } from "./src/agents.ts";
 import type { SubagentInfo } from "../shared/subagent-activity.ts";
-import {
-  SUBAGENT_ACTIVITY_CHANNEL,
-  SUBAGENT_COMMANDS,
-  SUBAGENT_ROLES_CHANNEL,
-} from "../shared/subagent-activity.ts";
-import { deriveBtwTitle, isModelVisible } from "./src/by-the-way.ts";
+import { SUBAGENT_ACTIVITY_CHANNEL } from "../shared/subagent-activity.ts";
 import {
   BACKEND_NAMES,
   formatElapsed,
@@ -85,21 +79,10 @@ import {
   runTool,
   type SubagentRuntime,
 } from "./src/runtime.ts";
-import { openSubagentPicker, openSubagentTakeover } from "./src/ui/takeover.ts";
 
 const SUBAGENT_OUTPUT_MAX_BYTES = 24 * 1024;
 const WAIT_OUTPUT_MAX_BYTES = 48 * 1024;
 const WAIT_PER_AGENT_MAX_BYTES = 16 * 1024;
-
-interface BtwResultData {
-  readonly id: string;
-  readonly title: string;
-  readonly status: SubagentSnapshot["status"];
-  readonly errorText?: string;
-  readonly prompt: string;
-  readonly answer: string;
-  readonly sessionFilePath?: string;
-}
 
 function describeSubagent(snap: SubagentSnapshot) {
   const details = [
@@ -236,35 +219,10 @@ export default function (pi: ExtensionAPI) {
     for (const snap of resultDelivery.drain()) deliverResult(snap);
   };
 
-  const deliverBtwResult = (snap: SubagentSnapshot) => {
-    // appendEntry is a synchronous SessionManager operation and emits an
-    // entry_appended event, so it is safe while the parent is streaming and
-    // never enters the model's context or follow-up queue.
-    pi.appendEntry<BtwResultData>("btw-result", {
-      id: snap.id,
-      title: snap.title,
-      status: snap.status,
-      errorText: snap.errorText,
-      prompt: snap.prompt,
-      answer: truncatedOutput(snap),
-      sessionFilePath: snap.meta.sessionFilePath,
-    });
-    ui?.notify(
-      snap.status === "error"
-        ? `by the way “${snap.title}” failed — reopen it with /subagents`
-        : `by the way “${snap.title}” answered — reopen it with /subagents`,
-      snap.status === "error" ? "error" : "info",
-    );
-  };
-
   const onSettled = (snap: SubagentSnapshot, consumed: boolean) => {
     // A shutdown can settle children while disposing their scopes. Never
     // append into a session whose extension runtime is already closing.
     if (!sessionContext) return;
-    if (snap.origin === "btw") {
-      deliverBtwResult({ ...snap, meta: { ...snap.meta } });
-      return;
-    }
     if (consumed) {
       resultDelivery.consume([snap.id]);
       return;
@@ -280,11 +238,6 @@ export default function (pi: ExtensionAPI) {
   pi.on("session_start", (_event, ctx) => {
     sessionContext = ctx;
     if (ctx.hasUI) ui = ctx.ui;
-    // Let the session tree offer the same roles this extension knows about,
-    // rather than reading and parsing the role files a second time.
-    pi.events.emit(SUBAGENT_ROLES_CHANNEL, {
-      names: agentRoles.map((role) => role.name),
-    });
     // A role that failed to parse looks exactly like a role that was never
     // written, so say so instead of quietly offering fewer agents.
     if (rejectedRoles.length > 0 && ctx.hasUI) {
@@ -448,14 +401,8 @@ export default function (pi: ExtensionAPI) {
       const ids = [...new Set(params.ids)];
       if (ids.length === 0)
         throw new Error("Provide at least one subagent id.");
-      const known = manager.view
-        .list()
-        .filter(isModelVisible)
-        .map((snap) => snap.id);
-      const unknown = ids.filter((id) => {
-        const snap = manager.view.get(id);
-        return !snap || !isModelVisible(snap);
-      });
+      const known = manager.view.list().map((snap) => snap.id);
+      const unknown = ids.filter((id) => !manager.view.get(id));
       if (unknown.length > 0) {
         throw new Error(
           `Unknown subagent id(s): ${unknown.join(", ")}. Known: ${known.join(", ") || "none"}.`,
@@ -542,14 +489,8 @@ export default function (pi: ExtensionAPI) {
       if (ids.length === 0)
         throw new Error("Provide at least one subagent id.");
 
-      const known = manager.view
-        .list()
-        .filter(isModelVisible)
-        .map((snap) => snap.id);
-      const unknown = ids.filter((id) => {
-        const snap = manager.view.get(id);
-        return !snap || !isModelVisible(snap);
-      });
+      const known = manager.view.list().map((snap) => snap.id);
+      const unknown = ids.filter((id) => !manager.view.get(id));
       if (unknown.length > 0) {
         throw new Error(
           `Unknown subagent id(s): ${unknown.join(", ")}. Known: ${known.join(", ") || "none"}.`,
@@ -592,11 +533,8 @@ export default function (pi: ExtensionAPI) {
     async execute(_toolCallId, params) {
       const manager = await getManager();
       const snap = manager.view.get(params.id);
-      if (!snap || !isModelVisible(snap)) {
-        const known = manager.view
-          .list()
-          .filter(isModelVisible)
-          .map((s) => s.id);
+      if (!snap) {
+        const known = manager.view.list().map((s) => s.id);
         throw new Error(
           `Unknown subagent id "${params.id}". Known: ${known.join(", ") || "none"}.`,
         );
@@ -628,7 +566,7 @@ export default function (pi: ExtensionAPI) {
     parameters: Type.Object({}),
     async execute() {
       const manager = await getManager();
-      const subs = manager.view.list().filter(isModelVisible);
+      const subs = manager.view.list();
       const text =
         subs.length === 0
           ? "No subagents."
@@ -697,250 +635,4 @@ export default function (pi: ExtensionAPI) {
       return new Text(text, 0, 0);
     },
   );
-
-  pi.registerEntryRenderer<BtwResultData>(
-    "btw-result",
-    (entry, { expanded }, theme) => {
-      const data = entry.data;
-      const failed = data?.status === "error";
-      const icon = failed ? theme.fg("error", "x") : theme.fg("success", "■");
-      const header =
-        `${icon} ` +
-        theme.fg("accent", theme.bold(`by the way · ${data?.title ?? "?"}`)) +
-        theme.fg(
-          "muted",
-          ` · ${failed ? "failed" : "answered"} · ${data?.id ?? "?"}`,
-        );
-      const body = [
-        data?.errorText ? `Error: ${data.errorText}` : "",
-        data?.answer ?? "(no answer)",
-      ]
-        .filter(Boolean)
-        .join("\n\n");
-
-      if (expanded) {
-        const md = new Markdown(body, 0, 0, getMarkdownTheme());
-        const container = new Text(header, 0, 0);
-        return {
-          render: (width: number) => [
-            ...container.render(width),
-            ...md.render(width),
-          ],
-          invalidate: () => {
-            container.invalidate();
-            md.invalidate();
-          },
-        };
-      }
-
-      const lines = body.split("\n");
-      let text = header;
-      for (const line of lines.slice(0, 8))
-        text += `\n${theme.fg("toolOutput", line)}`;
-      if (lines.length > 8)
-        text += `\n${theme.fg("dim", "... (ctrl+o to expand)")}`;
-      return new Text(text, 0, 0);
-    },
-  );
-
-  // --- Commands -----------------------------------------------------------
-
-  const runByTheWay = async (rawArgs: string, ctx: ExtensionCommandContext) => {
-    if (ctx.mode !== "tui") {
-      if (ctx.hasUI)
-        ctx.ui.notify("by the way is only available in the TUI", "error");
-      return;
-    }
-
-    let prompt = rawArgs.trim();
-    if (!prompt) {
-      const input = await ctx.ui.input("by the way", "Ask a one-off question…");
-      prompt = input?.trim() ?? "";
-      if (!prompt) return;
-    }
-
-    const manager = await getManager();
-    let snap: SubagentSnapshot;
-    try {
-      snap = await runTool(
-        getRuntime(),
-        manager.spawn("pi", {
-          origin: "btw",
-          prompt,
-          title: deriveBtwTitle(prompt),
-          cwd: ctx.cwd,
-          parent: {
-            parentCwd: ctx.cwd,
-            projectTrusted: ctx.isProjectTrusted(),
-            inheritedModel: ctx.model
-              ? { provider: ctx.model.provider, id: ctx.model.id }
-              : undefined,
-            inheritedThinkingLevel: pi.getThinkingLevel(),
-            modelRegistry: ctx.modelRegistry,
-          },
-        }),
-      );
-    } catch (error) {
-      ctx.ui.notify(
-        error instanceof Error ? error.message : String(error),
-        "error",
-      );
-      return;
-    }
-
-    await openSubagentTakeover(ctx, manager.view, snap.id, {
-      badge: "by the way",
-    });
-  };
-
-  pi.registerCommand("btw", {
-    description:
-      "Ask a one-off side question while the main agent keeps working",
-    handler: runByTheWay,
-  });
-
-  pi.registerCommand("subagents", {
-    description: "List, inspect, and take over subagents",
-    handler: async (_args, ctx) => {
-      if (ctx.mode !== "tui") {
-        if (ctx.hasUI)
-          ctx.ui.notify(
-            "Subagent takeover is only available in the TUI",
-            "error",
-          );
-        return;
-      }
-      const manager = await getManager();
-      if (manager.view.size() === 0) {
-        ctx.ui.notify(
-          "No subagents yet. The agent spawns them with subagent_spawn.",
-          "info",
-        );
-        return;
-      }
-      await openSubagentPicker(ctx, manager.view);
-    },
-  });
-
-  pi.registerCommand(SUBAGENT_COMMANDS.open, {
-    description: "Open the takeover view for one subagent by id",
-    handler: async (args, ctx) => {
-      const id = args.trim();
-      const manager = await getManager();
-      if (ctx.mode !== "tui" || !manager.view.get(id)) {
-        if (ctx.hasUI) ctx.ui.notify(`No subagent "${id}" in this window`, "error");
-        return;
-      }
-      await openSubagentTakeover(ctx, manager.view, id);
-    },
-  });
-
-  pi.registerCommand(SUBAGENT_COMMANDS.remove, {
-    description: "Remove a subagent by id, aborting it first if it is running",
-    handler: async (args, ctx) => {
-      const id = args.trim();
-      const manager = await getManager();
-      const snap = manager.view.get(id);
-      if (!snap) {
-        if (ctx.hasUI) ctx.ui.notify(`No subagent "${id}" in this window`, "error");
-        return;
-      }
-      if (snap.status === "running") {
-        const confirmed =
-          ctx.hasUI &&
-          (await ctx.ui.confirm(
-            `Abort "${snap.title}" and remove it?`,
-            "It is still running. Its work will be lost.",
-          ));
-        if (!confirmed) return;
-        manager.view.requestAbort(id);
-        // The abort settles asynchronously; forget it once it lands so the row
-        // does not linger as "error" in every window's tree.
-        forgetWhenSettled(manager, id);
-        return;
-      }
-      const removed = manager.view.requestForget(id);
-      if (ctx.hasUI) {
-        ctx.ui.notify(
-          removed ? `Removed ${snap.title}` : `${snap.title} is still being waited on`,
-          removed ? "info" : "warning",
-        );
-      }
-    },
-  });
-
-  pi.registerCommand(SUBAGENT_COMMANDS.create, {
-    description: "Start a subagent in a directory, choosing a role and a task",
-    handler: async (args, ctx) => {
-      if (ctx.mode !== "tui") {
-        if (ctx.hasUI) ctx.ui.notify("This needs the TUI", "error");
-        return;
-      }
-      await promptSpawnInDirectory(ctx, path.resolve(args.trim() || ctx.cwd));
-    },
-  });
-
-  /** Drops a subagent from tracking as soon as its abort finishes settling. */
-  function forgetWhenSettled(manager: SubagentManagerShape, id: string): void {
-    if (manager.view.requestForget(id)) return;
-    const unsubscribe = manager.view.subscribeTo(id, () => {
-      const snap = manager.view.get(id);
-      if (!snap || snap.status === "running") return;
-      if (manager.view.requestForget(id)) unsubscribe();
-    });
-  }
-
-  /**
-   * `n` in the fleet view: ask for a role and a task, then start a subagent in
-   * the chosen directory. The child belongs to this window, wherever it works.
-   */
-  async function promptSpawnInDirectory(
-    ctx: ExtensionCommandContext,
-    cwd: string,
-  ): Promise<void> {
-    const NO_ROLE = "(no role)";
-    const roleName = await ctx.ui.select(`Role for the new subagent in ${cwd}`, [
-      NO_ROLE,
-      ...agentRoles.map((role) => role.name),
-    ]);
-    if (roleName === undefined) return;
-
-    const task = await ctx.ui.input(
-      `New subagent in ${cwd}`,
-      "What should it do? It cannot see this conversation.",
-    );
-    if (!task?.trim()) return;
-
-    const role = roleName === NO_ROLE ? undefined : roleByName.get(roleName);
-    const manager = await getManager();
-    const title = task.trim().split(/\s+/).slice(0, 4).join(" ");
-    const snap = await getRuntime().runPromise(
-      manager.spawn("pi", {
-        title,
-        prompt: role ? applyRole(role, task) : task,
-        cwd,
-        // "model" so the finished result is delivered back into the chat, the
-        // same as a child the agent spawned itself.
-        origin: "model",
-        model: role?.model,
-        reasoningEffort: role?.reasoningEffort,
-        tools: role?.tools,
-        parent: {
-          parentCwd: ctx.cwd,
-          projectTrusted: resolveChildProjectTrust({
-            parentCwd: ctx.cwd,
-            childCwd: cwd,
-            parentTrusted: ctx.isProjectTrusted(),
-          }),
-          inheritedModel: ctx.model
-            ? { provider: ctx.model.provider, id: ctx.model.id }
-            : undefined,
-          inheritedThinkingLevel: pi.getThinkingLevel(),
-          modelRegistry: ctx.modelRegistry,
-        },
-      }),
-    );
-    if (role) roleById.set(snap.id, role.name);
-    ctx.ui.notify(`Started "${title}" in ${cwd}`, "info");
-  }
 }

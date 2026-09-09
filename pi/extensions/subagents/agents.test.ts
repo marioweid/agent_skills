@@ -4,7 +4,6 @@ import os from "node:os";
 import path from "node:path";
 import { test } from "node:test";
 import { applyRole, loadAgentRoles, parseFrontmatter } from "./src/agents.ts";
-import { formatCwd } from "./src/ui/takeover.ts";
 
 function fixture(files: Record<string, string>) {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), "roles-"));
@@ -121,11 +120,4 @@ test("parseFrontmatter ignores comments and blank lines", () => {
   );
   assert.equal(scalars.get("name"), "x");
   assert.deepEqual(lists.get("tools"), ["read", "grep"]);
-});
-
-test("formatCwd shortens home and deep paths, keeps short absolutes", () => {
-  assert.equal(formatCwd("/Users/me", "/Users/me"), "~");
-  assert.equal(formatCwd("/Users/me/src", "/Users/me"), "~/src");
-  assert.equal(formatCwd("/Users/me/a/b/c", "/Users/me"), "…/b/c");
-  assert.equal(formatCwd("/tmp", "/Users/me"), "/tmp");
 });

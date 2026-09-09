@@ -29,7 +29,6 @@ import type {
   RunOutcome,
   SpawnTask,
   SubagentEvent,
-  SubagentOrigin,
   SubagentMeta,
   SubagentSnapshot,
   SubagentStatus,
@@ -74,7 +73,6 @@ function appendTranscript(snapshot: MutableSnapshot, item: TranscriptItem) {
 /** Mutable snapshot; exposed to readers via the readonly SubagentSnapshot type. */
 interface MutableSnapshot {
   id: string;
-  origin: SubagentOrigin;
   backend: BackendName;
   title: string;
   prompt: string;
@@ -195,7 +193,6 @@ const makeManager = Effect.gen(function* () {
   const idListeners = new Map<string, Set<() => void>>();
   const cleanups = new Set<Fiber.Fiber<unknown>>();
   let modelCounter = 0;
-  let btwCounter = 0;
   let reserved = 0;
   let disposed = false;
   let onSettled:
@@ -471,14 +468,11 @@ const makeManager = Effect.gen(function* () {
           });
         }
 
-        const origin = task.origin ?? "model";
-        const id =
-          origin === "btw" ? `btw-${++btwCounter}` : `sa-${++modelCounter}`;
+        const id = `sa-${++modelCounter}`;
         const meta = yield* session.meta;
         const entry: Entry = {
           snapshot: {
             id,
-            origin,
             backend: backendName,
             title: task.title,
             prompt: task.prompt,

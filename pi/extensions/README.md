@@ -12,7 +12,7 @@ ln -s "$PWD" ~/.pi/agent/extensions
 
 | extension | what it does |
 |---|---|
-| `subagents` | `subagent_spawn` / `_wait` / `_check` / `_cancel` / `_list` on three harnesses (pi in-process, Claude Code, Codex CLI). Max 4 concurrent. `/subagents` for this window's live view and takeover, `/btw` to message a running child. |
+| `subagents` | `subagent_spawn` / `_wait` / `_check` / `_cancel` / `_list` on three harnesses (pi in-process, Claude Code, Codex CLI). Max 4 concurrent. No commands: children show up in `/sessions` and in the footer. |
 | `session-tree` | `/sessions` (left on an empty prompt, and the startup picker): every pi session on the machine, each live one dotted yellow/accent/green for waiting-on-you, working, done. |
 | `ask-user` | `ask_user` — 2–5 option multiple-choice popup, with a free-text escape hatch. |
 | `file-search` | `fd` and `rg` as model tools. |
@@ -60,13 +60,17 @@ a headless one-shot child that is equivalent.
 
 Tests: `node --test --experimental-strip-types subagents/agents.test.ts`
 
-### Working directory in the views (`subagents/src/ui/takeover.ts`)
+### No subagent UI of its own
 
-`subagent_spawn` takes a `working_dir`, so children routinely run in different
-directories, but neither the `/subagents` dashboard nor the takeover header
-showed it. Both now render a shortened cwd (`~/src`, `…/parent/dir`).
+`subagents` used to own three views — a `/fleet` cross-window browser, a
+`/subagents` picker with an interactive takeover, and `/btw` for one-off side
+questions that opened that takeover. All three are gone. A child is a pi
+session named `subagent: …`, so the session tree already lists it, shows its
+state on the glyph, and enters it on `⏎`; a second view of the same thing was
+only a second thing to keep working.
 
-Scope: one pi process. Use `/fleet` for the cross-window view.
+What remains is the five tools, the footer status, and the `subagents:activity`
+broadcast that the tree and the bell read.
 
 ### Session tree (`session-tree/`)
 
@@ -140,13 +144,16 @@ now bail when `ctx.mode !== "tui"`, matching what `ui-customization` already did
 
 ### notify
 
-Pi's bundled `examples/extensions/notify.ts` plus a chime, a 20s minimum
+Pi's bundled `examples/extensions/notify.ts` plus a chime, a 10s minimum
 duration, and one rule: the bell waits for the *whole* turn. A settled main
 thread is not enough, because delivering a subagent result wakes the agent for
 another run — so ringing on every settle fires mid-fan-out. `subagents`
 publishes its running count on the `subagents:activity` event channel, and the
 bell rings only when the main thread is idle *and* no child is still working.
 Adjust `MIN_RUN_MS` in `notify/index.ts`.
+
+`ask_user` calls the same chime through `alertUser`, with no minimum duration —
+a question needs an answer whenever it is asked.
 
 ## Not vendored
 
