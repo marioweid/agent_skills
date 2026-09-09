@@ -3,10 +3,9 @@
 Single source for my portable agent tooling — **skills**, **coding standards**,
 and the **review pipeline** — shared across Claude Code, Codex, and opencode.
 
-There is no install CLI and no lockfile: this repo *is* the source of truth.
-Clone it once (or let nix materialize it) and symlink the folders into each
-tool's config directory. Company-specific config (Vertex, Artifactory, internal
-RAG) is intentionally **not** here — that stays on the work machine.
+This repo is the source of truth and a Pi package: its manifest recursively
+loads every `skills/*/SKILL.md`. Company-specific config (Vertex, Artifactory,
+internal RAG) is intentionally **not** here — that stays on the work machine.
 
 ## Layout
 
@@ -51,6 +50,22 @@ dirs hold nothing else. Two cases need care:
 ## Setup
 
 Clone anywhere; set `REPO` to that path.
+
+### Pi
+
+On NixOS, prefer the declarative [Home Manager setup](#nix-home-manager) below.
+For a live development checkout on other setups, install this checkout as a local package. Pi loads all 26 skills directly from
+this repository, so later edits are available without a separate sync or
+lockfile update:
+
+```sh
+pi install "$REPO"
+pi list
+```
+
+To remove it later: `pi remove "$REPO"`.
+
+### Claude Code, Codex, and OpenCode
 
 ### macOS / Linux
 
@@ -147,14 +162,22 @@ Add the repo as a flake input and link the folders declaratively:
 ```nix
 # flake.nix
 inputs.agentSkills = {
-  url = "github:marioweid/agent_skills";
+  url = "github:marioweid/agent_skills/main";
   flake = false;
 };
+
+# In the NixOS module configuring Home Manager, pass the flake inputs through:
+home-manager.extraSpecialArgs = { inherit inputs; };
 
 # home.nix  (args include `inputs`)
 { inputs, ... }:
 let repo = inputs.agentSkills;
 in {
+  # Pi discovers these directly; settings.json stays writable for login/model preferences.
+  home.file.".pi/agent/skills/agent-skills".source = "${repo}/skills";
+  home.file.".pi/agent/AGENTS.md".source = "${repo}/standards/AGENTS.md";
+
+  # Optional: links for other tools.
   home.file.".claude/skills".source            = "${repo}/skills";
   home.file.".agents/skills".source             = "${repo}/skills";
   home.file.".claude/CLAUDE.md".source         = "${repo}/standards/AGENTS.md";
@@ -169,7 +192,31 @@ in {
 }
 ```
 
-Pin updates with `nix flake update agentSkills`.
+The input is pinned in the NixOS configuration's `flake.lock`. To update all
+inputs (including skills) and activate the links on this machine:
+
+```sh
+nix flake update --flake "$HOME/nixos-config"
+sudo nixos-rebuild switch --flake "$HOME/nixos-config#nixos"
+```
+
+To update only the skills, use
+`nix flake update agentSkills --flake "$HOME/nixos-config"`, then rebuild.
+A rebuild alone keeps the locked revision; it does not fetch the latest branch tip.
+
+After the first successful activation, remove any previous local Pi package
+registration to avoid loading both the checkout and the Nix-managed skills:
+
+```sh
+pi remove "$HOME/sources/agent_skills"
+```
+
+Then use `/reload` in Pi or restart it. Nix-managed skills are auto-discovered,
+so they won't appear in `pi list`. All skill directories and their bundled
+references/scripts are linked; the Claude/OpenCode pipeline is not Pi-native
+and is not installed into Pi. The Nix store is read-only: edit the source checkout,
+publish changes to GitHub, then update the flake input and rebuild. Local uncommitted
+changes are not included in the GitHub input.
 
 ## Notes
 
@@ -179,3 +226,5 @@ Pin updates with `nix flake update agentSkills`.
   files under `pipeline/` target Claude Code's dispatch and model syntax.
 - On the work machine, keep company-only bits (Vertex/Artifactory settings) in a
   local file that is **not** linked from here.
+
+Portable Pi snapshot and native macOS/NixOS setup: [pi/README.md](pi/README.md).
