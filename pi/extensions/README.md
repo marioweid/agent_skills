@@ -67,50 +67,60 @@ showed it. Both now render a shortened cwd (`~/src`, `…/parent/dir`).
 
 Scope: one pi process. Use `/fleet` for the cross-window view.
 
-### `/fleet` — cross-window browser (`subagents/src/fleet/`)
+### `/fleet` — cross-window session browser (`subagents/src/fleet/`)
 
 `/subagents` only knows this process's children. `/fleet` is a tree of every pi
-window on the machine:
+session on the machine:
 
 ```
-  Fleet  2 running · 3 windows · 9 directories
- ─────────────────────────────────────────────────────────────
-  ▾ ~/src/api (2)          │ implementer
-    ▾ pi 41207 (2)         │
-      ● implementer        │ status    running
-      ● migrate            │ role      implementer
-    ▸ pi 41999             │ harness   pi
-  ▾ …/work/frontend        │ model     anthropic-vertex/claude-opus-5
-    ▸ pi 51882             │ directory /Users/me/src/api
-    ~/scratch              │ age       4m 12s
-    ~/.pi/agent            │ tokens    91,204
- ─────────────────────────────────────────────────────────────
-  ↑↓ move · → open · ← back · ⏎ take over · n new · ^x remove · esc close
+  Fleet  2 running · 3 live sessions · 9 directories
+ ──────────────────────────────────────────────────────────────
+  ▾ ~/src/api (2)                │ rewrite the auth middleware
+    ▾ rewrite the auth middlew…  │
+      ● implementer              │ state     this window
+      ● migrate                  │ directory /Users/me/src/api
+    · fix the flaky test         │ messages  128
+    · add rate limiting          │ modified  3m 12s ago
+  ▾ …/work/frontend              │ file      ~/.pi/agent/sessions/…/a.jsonl
+    ▸ port the design system     │ agents    2
+    · (empty session)            │ uptime    1h 4m
+ ──────────────────────────────────────────────────────────────
+  ↑↓ move · →← nest · ⏎ open · n new · ^x remove · esc close
 ```
 
-Three levels: directory → window → agent. `→` expands a node or steps into it,
-`←` collapses or steps back out, `⏎` opens the takeover for one of this
-window's own agents, `n` starts a new subagent in the selected directory
-(role picker, then a task prompt).
+Three levels: **directory → session → agent**. `→` expands a node or steps into
+it, `←` collapses or steps back out. `▸`/`▾` mark a live session, `·` marks
+history, and `←` in the sidebar marks the session you are sitting in.
 
-`ctrl+x` removes the selected row, and what that means depends on who owns it:
+Sessions come from `SessionManager.listAll()`, labelled by their name or
+opening message. A live window and its transcript collapse into one row rather
+than appearing twice.
 
-| row | ctrl+x |
+**`⏎`** depends on the row:
+
+| row | ⏎ |
+|---|---|
+| own agent | opens the takeover view |
+| session, nothing has it open | switches this window into it |
+| session, open in another window | refused — two pi processes writing one transcript would corrupt it |
+| session you are already in | says so |
+| directory | expands it |
+
+**`^x`** removes the selected row:
+
+| row | ^x |
 |---|---|
 | own agent, settled | forgotten for real — gone from `/fleet` and `/subagents` |
 | own agent, running | confirm, then abort and forget |
-| another window's row | hidden locally; that window owns it and would republish it within the second |
-| directory or window | hidden locally |
+| session, nothing has it open | confirm, then delete the transcript and its artifacts from disk |
+| session that is live or is yours | hidden only; never deletable while a pi is writing to it |
+| another window's row, or a directory | hidden locally; its owner would republish it within the second |
 
-Hidden rows are session-scoped: `ctrl+r` restores them, and so does restarting
-pi. Hiding a busy row also clears the running badge its parents were showing
-for it. A settled agent is refused if a `subagent_wait` is still collecting its
-result, since forgetting it would strand the caller.
+Hidden rows are session-scoped: `^r` restores them, and so does restarting pi.
+Hiding a busy row also clears the running badge its parents showed for it.
 
-Directories come from live windows plus pi's session history
-(`~/.pi/agent/sessions`), whose slugs are a lossy encoding of the path, so the
-real cwd is read from each transcript's header line. Busy directories sort
-first.
+**`n`** starts a new subagent in the selected directory — role picker, then a
+task prompt. The child belongs to this window wherever it works.
 
 **Storage** is one JSON file per process, `~/.pi/agent/fleet/<pid>.json`,
 written by atomic rename. Every file has exactly one writer, so there is
