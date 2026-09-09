@@ -118,8 +118,10 @@ export default function projectMemory(pi: ExtensionAPI) {
     description: "Show the .agent/PLAN.md Now block, or `/plan new <title>` to create it",
     handler: async (args, ctx) => {
       const trimmed = args.trim();
-      if (trimmed.startsWith("new")) {
-        const title = trimmed.slice("new".length).trim();
+      // Split on the word, not the prefix: `/plan newfoo` is a typo, not `new foo`.
+      const [verb, ...rest] = trimmed.split(/\s+/);
+      if (verb === "new") {
+        const title = rest.join(" ");
         if (!title) {
           show("Usage: /plan new <title>");
           return;
