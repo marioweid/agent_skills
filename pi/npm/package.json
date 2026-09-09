@@ -1,0 +1,8 @@
+{
+  "name": "pi-extensions",
+  "private": true,
+  "dependencies": {
+    "@dietrichgebert/ponytail": "4.9.0",
+    "pi-subagents": "0.66.0"
+  }
+}

@@ -9,11 +9,6 @@
   ],
   "license": "MIT",
   "pi": {
-    "skills": [
-      "./skills/gwa2-bot",
-      "./skills/karpathy-guidelines",
-      "./skills/py4gw",
-      "./skills/python-pro"
-    ]
+    "skills": ["./skills"]
   }
 }

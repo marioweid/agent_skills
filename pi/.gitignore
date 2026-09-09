@@ -1,0 +1,9 @@
+*
+!.gitignore
+!README.md
+!settings.json
+!check.mjs
+!npm/
+npm/*
+!npm/package.json
+!npm/package-lock.json
