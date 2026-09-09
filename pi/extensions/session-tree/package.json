@@ -1,0 +1,11 @@
+{
+  "name": "pi-session-tree",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Browse and switch between every pi session on this machine",
+  "scripts": {
+    "check": "tsc --noEmit -p .",
+    "test": "node --test --experimental-strip-types tree.test.ts"
+  }
+}
