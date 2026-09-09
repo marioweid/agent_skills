@@ -17,6 +17,7 @@ import {
   truncateToWidth,
 } from "@earendil-works/pi-tui";
 import { Cause, Effect, Exit } from "effect";
+import { alertUser } from "../notify/index.ts";
 import { Type, type Static } from "typebox";
 import {
   ASK_USER_PARAMETER_DESCRIPTIONS,
@@ -328,6 +329,8 @@ export default function askUser(pi: ExtensionAPI) {
             },
           };
         });
+
+      alertUser(params.question);
 
       const uiExit = await Effect.runPromiseExit(
         Effect.tryPromise(showQuestion),

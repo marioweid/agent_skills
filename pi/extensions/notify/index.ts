@@ -16,7 +16,7 @@ import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 const SUBAGENT_ACTIVITY_CHANNEL = "subagents:activity";
 
 /** Work shorter than this settles silently; a three-second answer needs no alert. */
-const MIN_RUN_MS = 20_000;
+const MIN_RUN_MS = 10_000;
 const SOUND_FILE = "/System/Library/Sounds/Glass.aiff";
 
 function windowsToastScript(title: string, body: string) {
@@ -45,6 +45,16 @@ function showNotification(title: string, body: string) {
   } else {
     process.stdout.write(`\x1b]777;notify;${title};${body}\x07`);
   }
+}
+
+/**
+ * Alert the user that the agent is blocked on them right now. Used by the
+ * `ask_user` tool; unlike the turn-end bell there is no minimum-duration gate,
+ * a question needs an answer whenever it is asked.
+ */
+export function alertUser(message: string) {
+  showNotification("pi", message);
+  playChime();
 }
 
 function playChime() {
