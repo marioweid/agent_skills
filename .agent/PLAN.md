@@ -9,6 +9,7 @@ Config lives here and is symlinked into `~/.pi/agent`.
 - [ ] Wire a post-edit quality gate (lint/format on changed files via an extension event)
 - [ ] Prune project-specific skills (`gwa2-bot`, `py4gw`, `logfire-*`) out of the always-on set
 - [ ] Run one real feature through `/build` end to end and fix what chafes
+- [ ] Collect triage misfires (build work done inline, or agents spawned for trivia) and sharpen the lane table from the real examples
 
 ## Next
 
