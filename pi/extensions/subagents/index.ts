@@ -44,10 +44,12 @@ import {
 import { Markdown, Text } from "@earendil-works/pi-tui";
 import { Type } from "typebox";
 import { applyRole, loadAgentRoles } from "./src/agents.ts";
-import type { FleetAgent } from "./src/fleet/store.ts";
-import { deleteSessionFiles, FleetStore } from "./src/fleet/store.ts";
-import type { SessionSummary } from "./src/fleet/tree.ts";
-import { openFleetView } from "./src/ui/fleet.ts";
+import type { SubagentInfo } from "../shared/subagent-activity.ts";
+import {
+  SUBAGENT_ACTIVITY_CHANNEL,
+  SUBAGENT_COMMANDS,
+  SUBAGENT_ROLES_CHANNEL,
+} from "../shared/subagent-activity.ts";
 import { deriveBtwTitle, isModelVisible } from "./src/by-the-way.ts";
 import {
   BACKEND_NAMES,
@@ -84,12 +86,6 @@ import {
   type SubagentRuntime,
 } from "./src/runtime.ts";
 import { openSubagentPicker, openSubagentTakeover } from "./src/ui/takeover.ts";
-
-/** Running-subagent count, published on every manager change. See notify. */
-export const SUBAGENT_ACTIVITY_CHANNEL = "subagents:activity";
-
-/** Coalescing window for fleet file writes. */
-const FLEET_PUBLISH_INTERVAL_MS = 1000;
 
 const SUBAGENT_OUTPUT_MAX_BYTES = 24 * 1024;
 const WAIT_OUTPUT_MAX_BYTES = 48 * 1024;
@@ -165,81 +161,6 @@ export default function (pi: ExtensionAPI) {
   const resultDelivery = createDeferredResultDelivery<SubagentSnapshot>();
   /** Role name per spawned child; the manager snapshot has no place for it. */
   const roleById = new Map<string, string>();
-  /**
-   * Fleet rows hidden with ctrl+x. Only rows this window cannot really remove
-   * end up here. Session-scoped: `ctrl+r` restores them, so does restarting.
-   */
-  const fleetHidden = new Set<string>();
-  let store: FleetStore | undefined;
-  let storeBroken = false;
-  let publishTimer: ReturnType<typeof setTimeout> | undefined;
-
-  const toFleetAgent = (snap: SubagentSnapshot): FleetAgent => ({
-    id: snap.id,
-    title: snap.title,
-    role: roleById.get(snap.id),
-    backend: snap.backend,
-    model: snap.meta.modelLabel,
-    cwd: snap.cwd,
-    status: snap.status,
-    createdAt: snap.createdAt,
-    settledAt: snap.settledAt,
-    tokens: snap.usage.tokens,
-    contextWindow: snap.usage.contextWindow,
-    sessionFile: snap.meta.sessionFilePath,
-  });
-
-  /**
-   * Publishing is best-effort: an unwritable fleet directory must never take
-   * down subagents, so the first failure removes this window from the fleet
-   * and the local dashboard carries on.
-   */
-  const writeFleet = (manager: SubagentManagerShape) => {
-    if (storeBroken) return;
-    try {
-      store ??= new FleetStore(path.join(getAgentDir(), "fleet"));
-      store.publish(
-        sessionContext?.cwd ?? process.cwd(),
-        manager.view.list().map(toFleetAgent),
-        sessionContext?.sessionManager.getSessionFile(),
-      );
-    } catch (error) {
-      storeBroken = true;
-      const failed = store;
-      store = undefined;
-      // Leaving the file behind would advertise this window as live forever.
-      try {
-        failed?.close();
-      } catch {
-        // Already unwritable; the next reader prunes it once this pid exits.
-      }
-      const message = `Fleet view disabled: ${String(error)}`;
-      if (ui) ui.notify(message, "error");
-      else console.error(message);
-    }
-  };
-
-  /**
-   * The manager notifies on every subagent event, including each streamed
-   * token. Writing the fleet file that often would put synchronous disk I/O in
-   * the delta hot path, so publishes are coalesced onto a trailing timer.
-   */
-  const publishFleet = (manager: SubagentManagerShape, immediate = false) => {
-    if (storeBroken) return;
-    if (immediate) {
-      if (publishTimer) clearTimeout(publishTimer);
-      publishTimer = undefined;
-      writeFleet(manager);
-      return;
-    }
-    if (publishTimer) return;
-    publishTimer = setTimeout(() => {
-      publishTimer = undefined;
-      writeFleet(manager);
-    }, FLEET_PUBLISH_INTERVAL_MS);
-    publishTimer.unref?.();
-  };
-
   const getRuntime = () => (runtime ??= createSubagentRuntime());
 
   /** Resolve the manager service once per runtime and wire the extension hooks. */
@@ -249,12 +170,8 @@ export default function (pi: ExtensionAPI) {
       .then((manager) => {
         manager.view.setOnSettled(onSettled);
         unsubStatus?.();
-        unsubStatus = manager.view.subscribe(() => {
-          updateStatus(manager);
-          publishFleet(manager);
-        });
+        unsubStatus = manager.view.subscribe(() => updateStatus(manager));
         updateStatus(manager);
-        publishFleet(manager, true);
         return manager;
       });
     return managerPromise;
@@ -262,10 +179,26 @@ export default function (pi: ExtensionAPI) {
 
   const updateStatus = (manager: SubagentManagerShape) => {
     const subs = manager.view.list();
-    // Broadcast the running count so other extensions (notify) can tell a
-    // genuinely finished turn from one that is still waiting on children.
+    // Broadcast this window's children so other extensions can show them:
+    // `notify` needs the running count to tell a genuinely finished turn from
+    // one still waiting on children, and `session-tree` folds the list into
+    // the window snapshot it publishes.
     pi.events.emit(SUBAGENT_ACTIVITY_CHANNEL, {
       running: subs.filter((snap) => snap.status === "running").length,
+      agents: subs.map(
+        (snap): SubagentInfo => ({
+          id: snap.id,
+          title: snap.title,
+          ...(roleById.get(snap.id) ? { role: roleById.get(snap.id) } : {}),
+          backend: snap.backend,
+          ...(snap.meta.modelLabel ? { model: snap.meta.modelLabel } : {}),
+          cwd: snap.cwd,
+          status: snap.status,
+          createdAt: snap.createdAt,
+          ...(snap.settledAt ? { settledAt: snap.settledAt } : {}),
+          ...(snap.usage.tokens ? { tokens: snap.usage.tokens } : {}),
+        }),
+      ),
     });
     if (!ui) return;
     if (subs.length === 0) {
@@ -347,6 +280,11 @@ export default function (pi: ExtensionAPI) {
   pi.on("session_start", (_event, ctx) => {
     sessionContext = ctx;
     if (ctx.hasUI) ui = ctx.ui;
+    // Let the session tree offer the same roles this extension knows about,
+    // rather than reading and parsing the role files a second time.
+    pi.events.emit(SUBAGENT_ROLES_CHANNEL, {
+      names: agentRoles.map((role) => role.name),
+    });
     // A role that failed to parse looks exactly like a role that was never
     // written, so say so instead of quietly offering fewer agents.
     if (rejectedRoles.length > 0 && ctx.hasUI) {
@@ -369,14 +307,6 @@ export default function (pi: ExtensionAPI) {
     ui?.setStatus("subagents", undefined);
     ui = undefined;
     roleById.clear();
-    if (publishTimer) clearTimeout(publishTimer);
-    publishTimer = undefined;
-    try {
-      store?.close();
-    } catch {
-      // Shutting down; a leftover file is pruned by the next reader anyway.
-    }
-    store = undefined;
     const closing = runtime;
     runtime = undefined;
     managerPromise = undefined;
@@ -892,107 +822,63 @@ export default function (pi: ExtensionAPI) {
     },
   });
 
-  pi.registerCommand("fleet", {
-    description: "Browse every pi session and subagent on this machine",
-    handler: async (_args, ctx) => {
-      if (ctx.mode !== "tui") {
-        if (ctx.hasUI) ctx.ui.notify("/fleet needs the TUI", "error");
-        return;
-      }
+  pi.registerCommand(SUBAGENT_COMMANDS.open, {
+    description: "Open the takeover view for one subagent by id",
+    handler: async (args, ctx) => {
+      const id = args.trim();
       const manager = await getManager();
-      publishFleet(manager, true);
-      if (!store) {
-        ctx.ui.notify("Fleet view unavailable", "error");
+      if (ctx.mode !== "tui" || !manager.view.get(id)) {
+        if (ctx.hasUI) ctx.ui.notify(`No subagent "${id}" in this window`, "error");
         return;
       }
+      await openSubagentTakeover(ctx, manager.view, id);
+    },
+  });
 
-      const controls = {
-        forget: (id: string) => manager.view.requestForget(id),
-        currentSessionPath: () => ctx.sessionManager.getSessionFile(),
-      };
-
-      // Switching, deleting and aborting all need work the overlay cannot do
-      // itself, so the view closes for each and we reopen it afterwards.
-      for (;;) {
-        const sessions = await listFleetSessions();
-        const outcome = await openFleetView(
-          ctx,
-          store,
-          sessions,
-          controls,
-          fleetHidden,
-        );
-
-        if (outcome.action === "takeover" && manager.view.get(outcome.agentId)) {
-          await openSubagentTakeover(ctx, manager.view, outcome.agentId);
-          continue;
-        }
-        if (outcome.action === "spawn") {
-          await promptSpawnInDirectory(ctx, outcome.cwd);
-          continue;
-        }
-        if (outcome.action === "abort") {
-          const confirmed = await ctx.ui.confirm(
-            `Abort "${outcome.title}" and remove it?`,
-            "It is still running. Its work will be lost.",
-          );
-          if (confirmed) {
-            manager.view.requestAbort(outcome.agentId);
-            // The abort settles asynchronously; forget it once it lands so the
-            // row does not linger as "error" in every window's fleet.
-            forgetWhenSettled(manager, outcome.agentId);
-          }
-          continue;
-        }
-        if (outcome.action === "delete") {
-          const confirmed = await ctx.ui.confirm(
-            `Delete session "${outcome.label}"?`,
-            `${outcome.sessionPath}\n\nThe transcript is removed from disk. This cannot be undone.`,
-          );
-          if (confirmed) {
-            const removed = deleteSessionFiles(outcome.sessionPath);
-            ctx.ui.notify(
-              removed ? "Session deleted" : "Could not delete that session",
-              removed ? "info" : "error",
-            );
-          }
-          continue;
-        }
-        if (outcome.action === "switch") {
-          // Session replacement tears this extension instance down, so nothing
-          // captured above may be used afterwards.
-          const result = await ctx.switchSession(outcome.sessionPath);
-          if (result.cancelled) {
-            ctx.ui.notify("Session switch was cancelled", "warning");
-            continue;
-          }
-          return;
-        }
+  pi.registerCommand(SUBAGENT_COMMANDS.remove, {
+    description: "Remove a subagent by id, aborting it first if it is running",
+    handler: async (args, ctx) => {
+      const id = args.trim();
+      const manager = await getManager();
+      const snap = manager.view.get(id);
+      if (!snap) {
+        if (ctx.hasUI) ctx.ui.notify(`No subagent "${id}" in this window`, "error");
         return;
+      }
+      if (snap.status === "running") {
+        const confirmed =
+          ctx.hasUI &&
+          (await ctx.ui.confirm(
+            `Abort "${snap.title}" and remove it?`,
+            "It is still running. Its work will be lost.",
+          ));
+        if (!confirmed) return;
+        manager.view.requestAbort(id);
+        // The abort settles asynchronously; forget it once it lands so the row
+        // does not linger as "error" in every window's tree.
+        forgetWhenSettled(manager, id);
+        return;
+      }
+      const removed = manager.view.requestForget(id);
+      if (ctx.hasUI) {
+        ctx.ui.notify(
+          removed ? `Removed ${snap.title}` : `${snap.title} is still being waited on`,
+          removed ? "info" : "warning",
+        );
       }
     },
   });
 
-  /** Every session pi knows about, in the shape the fleet tree wants. */
-  async function listFleetSessions(): Promise<SessionSummary[]> {
-    try {
-      const sessions = await SessionManager.listAll();
-      return sessions
-        .filter((session) => session.cwd)
-        .map((session) => ({
-          path: session.path,
-          id: session.id,
-          cwd: session.cwd,
-          name: session.name,
-          firstMessage: session.firstMessage,
-          modified: session.modified.getTime(),
-          messageCount: session.messageCount,
-        }));
-    } catch {
-      // A broken session store must not stop the fleet from showing live work.
-      return [];
-    }
-  }
+  pi.registerCommand(SUBAGENT_COMMANDS.create, {
+    description: "Start a subagent in a directory, choosing a role and a task",
+    handler: async (args, ctx) => {
+      if (ctx.mode !== "tui") {
+        if (ctx.hasUI) ctx.ui.notify("This needs the TUI", "error");
+        return;
+      }
+      await promptSpawnInDirectory(ctx, path.resolve(args.trim() || ctx.cwd));
+    },
+  });
 
   /** Drops a subagent from tracking as soon as its abort finishes settling. */
   function forgetWhenSettled(manager: SubagentManagerShape, id: string): void {

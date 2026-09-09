@@ -4,15 +4,20 @@ import os from "node:os";
 import path from "node:path";
 import { test } from "node:test";
 import type { LiveWindow } from "./src/store.ts";
-import { isProcessAlive, parseWindow, WindowStore } from "./src/store.ts";
-import type { SessionRow } from "./src/tree.ts";
-import { buildTree, compactTitle, flatten, navigate, selected } from "./src/tree.ts";
+import { deleteSessionFiles, isProcessAlive, parseWindow, WindowStore } from "./src/store.ts";
+import type { SessionRow, TreeState } from "./src/tree.ts";
+import { buildTree, compactTitle, flatten, navigate, selected, sessionLabel } from "./src/tree.ts";
+import { conversationFrom, lastUserText } from "./src/transcript.ts";
 import {
+  conversationLines,
   detailLines,
+  nodeParts,
   enterActionFor,
   formatAge,
   formatCwd,
   nodeLabel,
+  removeActionFor,
+  openSessionTree,
   treeKeyFor,
 } from "./src/view.ts";
 
@@ -187,17 +192,6 @@ test("delegated child transcripts are not offered as sessions", () => {
   );
 });
 
-test("hidden rows and their directories disappear", () => {
-  const sessions = [session({ path: "/s/1" }), session({ path: "/s/2", cwd: "/repo/b" })];
-  const hidden = new Set(["session:/s/2"]);
-  const roots = buildTree(sessions, [], hidden);
-  assert.deepEqual(
-    roots.map((r) => r.cwd),
-    ["/repo/a"],
-    "a directory with nothing left in it is gone too",
-  );
-});
-
 test("compactTitle takes one line and caps its length", () => {
   assert.equal(compactTitle("  hello   world \nignored"), "hello world");
   assert.equal(Array.from(compactTitle("x".repeat(200))).length, 60);
@@ -319,7 +313,7 @@ test("the detail pane says what enter will do", () => {
   assert.match(free, /messages {3}4/);
   assert.match(
     detailLines(roots[0]!.children[0], now, () => true).join("\n"),
-    /This is the session you are in/,
+    /This is the session you are in — ⏎ to go back to it/,
   );
   assert.deepEqual(detailLines(undefined, now, never), ["Nothing selected."]);
 });
@@ -335,4 +329,374 @@ test("formatAge reads naturally at each scale", () => {
   assert.equal(formatAge(0, 90_000), "1m 30s");
   assert.equal(formatAge(0, 3_930_000), "1h 5m");
   assert.equal(formatAge(0, 200_000_000), "2d 7h");
+});
+
+// --- ctrl+x -----------------------------------------------------------------
+
+test("d deletes a session nothing has open", () => {
+  const roots = buildTree([session({ path: "/s/old", cwd: "/repo/a" })], []);
+  assert.equal(removeActionFor(roots[0]!.children[0]!), "delete-session");
+});
+
+test("d refuses, rather than deletes, a session with a live writer", () => {
+  const roots = buildTree(
+    [session({ path: "/s/live", cwd: "/repo/a" })],
+    [window({ owner: "mine", sessionFile: "/s/live" })],
+  );
+  assert.equal(
+    removeActionFor(roots[0]!.children[0]!),
+    "blocked-open",
+    "deleting a transcript being written to would corrupt it",
+  );
+  assert.equal(removeActionFor(roots[0]!), "none", "directories are never deleted");
+});
+
+// --- session deletion -------------------------------------------------------
+
+test("deleting a session removes the transcript and its artifact directory", () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), "sess-"));
+  const transcript = path.join(dir, "s.jsonl");
+  const artifacts = path.join(dir, "s");
+  fs.writeFileSync(transcript, "{}\n");
+  fs.mkdirSync(artifacts);
+  fs.writeFileSync(path.join(artifacts, "blob.txt"), "x");
+
+  assert.equal(deleteSessionFiles(transcript), true);
+  assert.equal(fs.existsSync(transcript), false);
+  assert.equal(fs.existsSync(artifacts), false, "artifacts must not be orphaned");
+});
+
+test("deleting an already-missing session is not an error", () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), "sess-"));
+  assert.equal(deleteSessionFiles(path.join(dir, "gone.jsonl")), true);
+});
+
+// --- keyboard ---------------------------------------------------------------
+
+/**
+ * Drives the real component through `handleInput`. Unit-testing the action
+ * functions alone is not enough: the first version of this feature had every
+ * branch tested and still did nothing, because the key never reached the view.
+ */
+function harness(
+  sessions: SessionRow[],
+  windows: LiveWindow[],
+  reload?: () => Promise<readonly SessionRow[]>,
+) {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), "st-probe-"));
+  const store = new WindowStore(dir, process.pid, () => true, "mine");
+  const theme = new Proxy({}, { get: () => (...a: unknown[]) => String(a.at(-1) ?? "") });
+  const tui = { terminal: { rows: 30 }, requestRender() {} };
+  const keys = {
+    matches: (d: string, n: string) =>
+      (n === "tui.select.cancel" && d === "\x1b") ||
+      (n === "tui.select.confirm" && d === "\r"),
+  };
+
+  let component: { handleInput(d: string): void; render(w: number): string[] };
+  let outcome: unknown = "open";
+  const ctx = {
+    ui: {
+      custom: (f: (t: unknown, th: unknown, k: unknown, done: (v: unknown) => void) => unknown) => {
+        component = f(tui, theme, keys, (v) => {
+          outcome = v;
+        }) as typeof component;
+        return new Promise<never>(() => {});
+      },
+    },
+  };
+  // The view reads live windows from the store, so publish them as files.
+  for (const w of windows) {
+    fs.writeFileSync(path.join(dir, `${w.pid}.json`), JSON.stringify(w));
+  }
+  void openSessionTree(ctx as never, store, sessions, reload);
+
+  return {
+    press: (d: string) => component.handleInput(d),
+    footer: () => component.render(100).at(-1)?.trim() ?? "",
+    screen: () => component.render(100).join("\n"),
+    rows: () =>
+      component.render(100).slice(2, 14).map((l) => l.split("│")[0]?.trimEnd() ?? "").filter(Boolean),
+    outcome: () => outcome,
+  };
+}
+
+test("dd deletes the session in place, without leaving the view", () => {
+  const dir = tempDir("st-del-");
+  const transcript = path.join(dir, "old.jsonl");
+  fs.writeFileSync(transcript, "{}\n");
+  const view = harness([session({ path: transcript, cwd: "/repo/a" })], []);
+  view.press("l");
+  view.press("l");
+
+  view.press("d");
+  assert.match(view.screen(), /Delete this session\?/, "the first d only asks");
+  assert.equal(fs.existsSync(transcript), true);
+
+  view.press("d");
+  assert.equal(fs.existsSync(transcript), false);
+  assert.deepEqual(view.rows(), [" No pi sessions found."], "the row and its empty directory go");
+  assert.equal(view.outcome(), "open", "deleting must not close or reroute the window");
+});
+
+test("esc cancels the confirm popup instead of closing the view", () => {
+  const dir = tempDir("st-keep-");
+  const transcript = path.join(dir, "old.jsonl");
+  fs.writeFileSync(transcript, "{}\n");
+  const view = harness([session({ path: transcript, cwd: "/repo/a" })], []);
+  view.press("l");
+  view.press("l");
+  view.press("d");
+  view.press("\x1b");
+  assert.equal(fs.existsSync(transcript), true);
+  assert.doesNotMatch(view.screen(), /Delete this session\?/);
+  assert.equal(view.outcome(), "open");
+});
+
+test("after a delete the cursor holds its place on the row above", () => {
+  const dir = tempDir("st-place-");
+  const paths = ["a", "b", "c"].map((name) => path.join(dir, `${name}.jsonl`));
+  for (const file of paths) fs.writeFileSync(file, "{}\n");
+  const view = harness(
+    paths.map((file, i) => session({ path: file, lastMessage: `row ${i}`, modified: 3000 - i })),
+    [],
+  );
+  view.press("l");
+  view.press("l");
+  view.press("j");
+  assert.match(view.screen(), /│ row 1\s*$/m, "the middle row is selected");
+
+  view.press("d");
+  view.press("d");
+  assert.equal(fs.existsSync(paths[1]!), false);
+  assert.match(
+    view.screen(),
+    /│ row 0\s*$/m,
+    "the row above takes the cursor, not the top of the tree",
+  );
+});
+
+test("deleting a directory's last session lands on the directory above it", () => {
+  const dir = tempDir("st-last-");
+  const files = ["a", "b", "c"].map((name) => path.join(dir, `${name}.jsonl`));
+  for (const file of files) fs.writeFileSync(file, "{}\n");
+  const view = harness(
+    files.map((file, i) => session({ path: file, cwd: `/repo/${i}`, modified: 3000 - i })),
+    [],
+  );
+  // Down to the last directory, then into its only session.
+  view.press("j");
+  view.press("j");
+  view.press("l");
+  view.press("l");
+  view.press("d");
+  view.press("d");
+
+  assert.doesNotMatch(view.rows().join("\n"), /repo\/2/, "the emptied directory goes too");
+  assert.match(
+    view.screen(),
+    /│ \/repo\/1\s*$/m,
+    "the cursor walks up past the vanished directory, not back to the top",
+  );
+});
+
+test("n cancels the popup, and no other key deletes by accident", () => {
+  const dir = tempDir("st-cancel-");
+  const transcript = path.join(dir, "old.jsonl");
+  fs.writeFileSync(transcript, "{}\n");
+  const view = harness([session({ path: transcript, cwd: "/repo/a" })], []);
+  view.press("l");
+  view.press("l");
+  view.press("d");
+  view.press("n");
+  assert.equal(fs.existsSync(transcript), true);
+  assert.doesNotMatch(view.screen(), /Delete this session\?/);
+
+  view.press("d");
+  view.press("j");
+  assert.equal(fs.existsSync(transcript), true, "only d or ⏎ may delete");
+  assert.doesNotMatch(view.screen(), /Delete this session\?/);
+});
+
+test("the view rescans the session list, so a session still being written keeps up", async () => {
+  let rows: SessionRow[] = [session({ path: "/s/live", firstMessage: "hey", messageCount: 1 })];
+  const view = harness(rows, [], async () => rows);
+  view.press("l");
+  view.press("l");
+  assert.match(view.rows().join("\n"), /hey/);
+
+  rows = [session({ path: "/s/live", lastMessage: "and now the answer", messageCount: 4 })];
+  await new Promise((resolve) => setTimeout(resolve, 1_200));
+  assert.match(view.rows().join("\n"), /and now the answer/, "the row follows the transcript");
+  assert.match(view.screen(), /messages   4/, "and so does the detail pane");
+});
+
+test("d on a directory says there is nothing to remove, rather than looking dead", () => {
+  const view = harness([session({ path: "/s/old", cwd: "/repo/a" })], []);
+  const before = view.rows();
+  view.press("d");
+  assert.match(view.footer(), /Nothing to remove/);
+  assert.deepEqual(view.rows(), before, "no row may vanish");
+  assert.equal(view.outcome(), "open");
+});
+
+test("ctrl+x is not bound: pi handles it before the view would see it", () => {
+  const view = harness([session({ path: "/s/old", cwd: "/repo/a" })], []);
+  const before = view.rows();
+  view.press("\x18");
+  assert.deepEqual(view.rows(), before, "no row may vanish");
+  assert.equal(view.outcome(), "open");
+});
+
+test("escape closes with no action", () => {
+  const view = harness([session({ path: "/s/old", cwd: "/repo/a" })], []);
+  view.press("\x1b");
+  assert.deepEqual(view.outcome(), { action: "none" });
+});
+
+// --- conversation preview ---------------------------------------------------
+
+const messageEntry = (role: string, content: unknown) => ({ type: "message", message: { role, content } });
+
+test("the conversation is user and assistant text, without the machinery", () => {
+  const turns = conversationFrom([
+    { type: "model_change" },
+    messageEntry("user", [{ type: "text", text: "ls" }]),
+    messageEntry("assistant", [{ type: "toolCall", name: "bash" }]),
+    messageEntry("toolResult", [{ type: "text", text: "total 48" }]),
+    messageEntry("assistant", [
+      { type: "thinking", text: "hidden" },
+      { type: "text", text: "31 directories." },
+    ]),
+  ]);
+  assert.deepEqual(turns, [
+    { role: "user", text: "ls" },
+    { role: "assistant", text: "31 directories." },
+  ]);
+});
+
+test("a message with no text at all is not a turn", () => {
+  assert.deepEqual(conversationFrom([messageEntry("assistant", [{ type: "toolCall" }])]), []);
+  assert.deepEqual(conversationFrom([messageEntry("user", "   ")]), []);
+  assert.deepEqual(conversationFrom([messageEntry("user", "plain string")]), [
+    { role: "user", text: "plain string" },
+  ]);
+});
+
+test("the row shows the last thing asked, not the first", () => {
+  const turns = conversationFrom([
+    messageEntry("user", "first"),
+    messageEntry("assistant", "answer"),
+    messageEntry("user", "last"),
+    messageEntry("assistant", "answer"),
+  ]);
+  assert.equal(lastUserText(turns), "last");
+  assert.equal(lastUserText([]), undefined);
+  assert.equal(lastUserText([{ role: "assistant", text: "only me" }]), undefined);
+});
+
+test("a name outranks the last message, which outranks the first", () => {
+  const row = session({ firstMessage: "how it started", lastMessage: "how it is going" });
+  assert.equal(sessionLabel(row, undefined), "how it is going");
+  assert.equal(sessionLabel({ ...row, name: "the refactor" }, undefined), "the refactor");
+  assert.equal(sessionLabel(session({ firstMessage: "how it started" }), undefined), "how it started");
+});
+
+test("conversation lines mark who spoke and wrap to the pane", () => {
+  const lines = conversationLines(
+    [
+      { role: "user", text: "a question that is longer than the pane is wide" },
+      { role: "assistant", text: "short answer" },
+    ],
+    20,
+  );
+  assert.equal(lines[0]?.role, "user");
+  assert.match(lines[0]?.text ?? "", /^\u203a /);
+  assert.ok(lines.every((line) => line.text.length <= 20), "no line may overflow the pane");
+  assert.ok(
+    lines.some((line) => line.role === "none" && line.text === ""),
+    "turns are separated by a blank line",
+  );
+  assert.deepEqual(lines.at(-1), { role: "assistant", text: "  short answer", styled: true });
+});
+
+test("answers go through the renderer they are given, prompts stay literal", () => {
+  const lines = conversationLines(
+    [
+      { role: "user", text: "# not a heading" },
+      { role: "assistant", text: "answer" },
+    ],
+    40,
+    (text, width) => [`[md ${width}] ${text}`],
+  );
+  assert.deepEqual(lines[0], { role: "user", text: "\u203a # not a heading" });
+  assert.deepEqual(lines.at(-1), { role: "assistant", text: "  [md 38] answer", styled: true });
+});
+
+test("a word longer than the pane is broken rather than dropped", () => {
+  const lines = conversationLines([{ role: "user", text: "x".repeat(50) }], 20);
+  assert.equal(lines.map((l) => l.text.trim().replace("\u203a ", "")).join(""), "x".repeat(50));
+});
+
+// --- window state ------------------------------------------------------------
+
+test("a window's glyph reports what that pi is doing", () => {
+  const tone = (state?: "working" | "waiting" | "idle") =>
+    nodeParts(
+      buildTree(
+        [session({ path: "/s/1", cwd: "/repo/a" })],
+        [window({ owner: "mine", sessionFile: "/s/1", ...(state ? { state } : {}) })],
+      )[0]!.children[0]!,
+      false,
+    ).tone;
+  assert.equal(tone("waiting"), "warning", "a question on screen is the one to notice");
+  assert.equal(tone("working"), "accent");
+  assert.equal(tone("idle"), "success");
+  assert.equal(tone(undefined), "success", "a snapshot from an older build is not working");
+});
+
+test("a session with no window keeps its muted dot", () => {
+  const node = buildTree([session({ path: "/s/1", cwd: "/repo/a" })], [])[0]!.children[0]!;
+  assert.deepEqual(nodeParts(node, false).glyph, "  \u00b7");
+  assert.equal(nodeParts(node, false).tone, "muted");
+});
+
+test("state survives a publish/read round-trip and the detail pane names it", () => {
+  const store = new WindowStore(tempDir("stree-state-"), 4242, () => true);
+  store.publish("/repo/a", { sessionFile: "/s/1", state: "waiting" });
+  const [read] = store.read();
+  assert.equal(read?.state, "waiting");
+  const node = buildTree([session({ path: "/s/1", cwd: "/repo/a" })], [read!])[0]!.children[0]!;
+  assert.match(detailLines(node, 0, never).join("\n"), /state {6}input needed/);
+});
+
+test("an unknown state in a snapshot is dropped rather than shown", () => {
+  const parsed = parseWindow(
+    JSON.stringify({ pid: 1, owner: "o", cwd: "/repo/a", state: "on fire" }),
+  );
+  assert.equal(parsed?.state, undefined);
+});
+
+// --- new sessions -------------------------------------------------------------
+
+test("n asks for a new session in the selected directory, with an anchor to get there", () => {
+  const view = harness(
+    [session({ path: "/s/old", cwd: "/repo/a" }), session({ path: "/s/newer", cwd: "/repo/a", modified: 2000 })],
+    [],
+  );
+  view.press("n");
+  assert.deepEqual(view.outcome(), {
+    action: "newSession",
+    cwd: "/repo/a",
+    anchor: "/s/newer",
+  });
+});
+
+test("no anchor is offered when every session there has a window on it", () => {
+  const view = harness(
+    [session({ path: "/s/live", cwd: "/repo/a" })],
+    [window({ owner: "theirs", pid: 9, sessionFile: "/s/live" })],
+  );
+  view.press("n");
+  assert.deepEqual(view.outcome(), { action: "newSession", cwd: "/repo/a" });
 });

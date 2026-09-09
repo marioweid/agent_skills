@@ -16,6 +16,16 @@ import { randomUUID } from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
 
+/**
+ * What a pi window is doing right now.
+ *
+ * `waiting` is the one that matters: that window has a question on screen and
+ * is doing nothing until someone answers it.
+ */
+export type WindowState = "working" | "waiting" | "idle";
+
+const WINDOW_STATES: readonly string[] = ["working", "waiting", "idle"];
+
 /** One live pi window. */
 export interface LiveWindow {
   readonly pid: number;
@@ -31,6 +41,8 @@ export interface LiveWindow {
   readonly sessionFile?: string;
   readonly startedAt: number;
   readonly updatedAt: number;
+  /** Absent in snapshots written by an older build; treated as idle. */
+  readonly state?: WindowState;
 }
 
 const FILE_PATTERN = /^(\d+)\.json$/;
@@ -74,6 +86,9 @@ export function parseWindow(text: string): LiveWindow | undefined {
     ...(typeof record.sessionFile === "string"
       ? { sessionFile: record.sessionFile }
       : {}),
+    ...(typeof record.state === "string" && WINDOW_STATES.includes(record.state)
+      ? { state: record.state as WindowState }
+      : {}),
     startedAt: typeof record.startedAt === "number" ? record.startedAt : 0,
     updatedAt: typeof record.updatedAt === "number" ? record.updatedAt : 0,
   };
@@ -110,13 +125,21 @@ export class WindowStore {
   }
 
   /** Publish this window's current state. Atomic: write a temp file, rename over. */
-  publish(cwd: string, details: { title?: string; sessionFile?: string } = {}): void {
+  publish(
+    cwd: string,
+    details: {
+      title?: string;
+      sessionFile?: string;
+      state?: WindowState;
+    } = {},
+  ): void {
     const snapshot: LiveWindow = {
       pid: this.pid,
       owner: this.owner,
       cwd,
       ...(details.title ? { title: details.title } : {}),
       ...(details.sessionFile ? { sessionFile: details.sessionFile } : {}),
+      ...(details.state ? { state: details.state } : {}),
       startedAt: this.startedAt,
       updatedAt: Date.now(),
     };
@@ -177,4 +200,22 @@ export class WindowStore {
   close(): void {
     this.discard(this.filePath);
   }
+}
+
+/**
+ * Deletes a session transcript and the sibling directory pi keeps beside it
+ * for that session's artifacts. Returns false if the transcript survives, so
+ * the caller can report a failure instead of assuming success.
+ */
+export function deleteSessionFiles(sessionPath: string): boolean {
+  const artifacts = sessionPath.replace(/\.jsonl$/, "");
+  try {
+    fs.rmSync(sessionPath, { force: true });
+    if (artifacts !== sessionPath) {
+      fs.rmSync(artifacts, { recursive: true, force: true });
+    }
+  } catch {
+    return false;
+  }
+  return !fs.existsSync(sessionPath);
 }

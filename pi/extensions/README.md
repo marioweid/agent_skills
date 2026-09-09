@@ -12,7 +12,8 @@ ln -s "$PWD" ~/.pi/agent/extensions
 
 | extension | what it does |
 |---|---|
-| `subagents` | `subagent_spawn` / `_wait` / `_check` / `_cancel` / `_list` on three harnesses (pi in-process, Claude Code, Codex CLI). Max 4 concurrent. `/subagents` for this window's live view and takeover, `/fleet` for every window's, `/btw` to message a running child. |
+| `subagents` | `subagent_spawn` / `_wait` / `_check` / `_cancel` / `_list` on three harnesses (pi in-process, Claude Code, Codex CLI). Max 4 concurrent. `/subagents` for this window's live view and takeover, `/btw` to message a running child. |
+| `session-tree` | `/sessions` (left on an empty prompt, and the startup picker): every pi session on the machine, each live one dotted yellow/accent/green for waiting-on-you, working, done. |
 | `ask-user` | `ask_user` — 2–5 option multiple-choice popup, with a free-text escape hatch. |
 | `file-search` | `fd` and `rg` as model tools. |
 | `workflows` | `workflow` — sandboxed JS orchestration scripts. `/workflows`. |
@@ -67,80 +68,68 @@ showed it. Both now render a shortened cwd (`~/src`, `…/parent/dir`).
 
 Scope: one pi process. Use `/fleet` for the cross-window view.
 
-### `/fleet` — cross-window session browser (`subagents/src/fleet/`)
+### Session tree (`session-tree/`)
 
-`/subagents` only knows this process's children. `/fleet` is a tree of every pi
-session on the machine:
+`session-tree` owns the cross-window view: `/sessions`, or left on an empty
+prompt, or the picker pi opens at startup. It manages sessions and nothing
+else — directory → session, with each live window's state on its glyph:
 
 ```
-  Fleet  2 running · 3 live sessions · 9 directories
- ──────────────────────────────────────────────────────────────
   ▾ ~/src/api (2)                │ rewrite the auth middleware
-    ▾ rewrite the auth middlew…  │
-      ● implementer              │ state     this window
-      ● migrate                  │ directory /Users/me/src/api
-    · fix the flaky test         │ messages  128
-    · add rate limiting          │ modified  3m 12s ago
-  ▾ …/work/frontend              │ file      ~/.pi/agent/sessions/…/a.jsonl
-    ▸ port the design system     │ agents    2
-    · (empty session)            │ uptime    1h 4m
+    ◆ rewrite the auth middlew…  │
+    · fix the flaky test         │ directory  ~/src/api
+  ▾ …/work/frontend              │ messages   84
+    ◆ port the design system     │ state      input needed
  ──────────────────────────────────────────────────────────────
-  ↑↓ move · →← nest · ⏎ open · n new · ^x remove · esc close
+  ↑↓ move · →/⏎ enter · ← back · ⇟⇞ read · n new session · dd delete · esc close
 ```
 
-Three levels: **directory → session → agent**. `→` expands a node or steps into
-it, `←` collapses or steps back out. `▸`/`▾` mark a live session, `·` marks
-history, and `←` in the sidebar marks the session you are sitting in.
+A row is the last thing you asked in that session, so you recognise it by
+where it ended up. The `◆` of a live window is **yellow** while it waits for an
+answer, accented while it works, **green** when it is done. The detail pane
+shows that session's conversation — prompts and replies only, answers rendered
+with pi's own markdown and code highlighting.
 
-Sessions come from `SessionManager.listAll()`, labelled by their name or
-opening message. A live window and its transcript collapse into one row rather
-than appearing twice.
-
-**`⏎`** depends on the row:
-
-| row | ⏎ |
+| key | what it does |
 |---|---|
-| own agent | opens the takeover view |
-| session, nothing has it open | switches this window into it |
-| session, open in another window | refused — two pi processes writing one transcript would corrupt it |
-| session you are already in | says so |
-| directory | expands it |
+| `⏎` on a session | switches this window into it; refused if another window has it open |
+| `n` | starts a new session in the selected directory |
+| `⇞` `⇟` | pages the detail pane through that session's conversation |
+| `dd` | deletes the selected session (see below) |
 
-**`^x`** removes the selected row:
+`n` in the directory you are already in is pi's own `/new`. Elsewhere it is two
+steps: switch into a session that lives there — pi can only start a session in
+the directory it is running in — then `/new`. If every session there is held by
+another window, it says so instead.
 
-| row | ^x |
+`dd` removes, vim-style: the first `d` raises a confirm popup inside the tree,
+the second `d` (or `⏎`) deletes. `n` or `esc` cancels, and every other key just
+dismisses the popup, so a stray `d` never deletes. The row disappears in place;
+the view never closes and the window is never rerouted.
+
+| row | `dd` |
 |---|---|
-| own agent, settled | forgotten for real — gone from `/fleet` and `/subagents` |
-| own agent, running | confirm, then abort and forget |
-| session, nothing has it open | confirm, then delete the transcript and its artifacts from disk |
-| session that is live or is yours | refused with a reason; a transcript being written to is never deletable |
-| another window's row, or a directory | hidden locally; its owner would republish it within the second |
+| session with no live writer | confirm popup, then delete the transcript and its artifacts from disk |
+| session a pi window has open | refused with a reason — never delete a transcript being written to |
+| a directory | refused with `Nothing to remove on this row.` |
 
 Every outcome writes a line to the footer. The view opens on the session you
-are in, which is exactly the row that refuses deletion, so a silent no-op there
-is indistinguishable from a broken key.
+are in, which is the row that refuses deletion, so a silent no-op there is
+indistinguishable from a broken key.
 
-Hidden rows are session-scoped: `^r` restores them, and so does restarting pi.
-Hiding a busy row also clears the running badge its parents showed for it.
+**Not ctrl+x.** pi binds ctrl+x to `app.message.copy` and handles it before a
+focused overlay sees it, so it silently copies a chat message instead of
+reaching the view. There is a regression test asserting ctrl+x changes nothing
+here.
 
-**`n`** starts a new subagent in the selected directory — role picker, then a
-task prompt. The child belongs to this window wherever it works.
+Storage is one JSON file per process at `~/.pi/agent/session-tree/<pid>.json`,
+written by atomic rename, so there is nothing to lock. A window deletes its
+file on shutdown; one that is killed leaves a file behind and the next reader
+unlinks it after checking the pid. A random `owner` id per process, not the
+pid, decides "is this mine", because the OS recycles pids.
 
-**Storage** is one JSON file per process, `~/.pi/agent/fleet/<pid>.json`,
-written by atomic rename. Every file has exactly one writer, so there is
-nothing to lock — a reader sees either the previous complete file or the next
-one. A window deletes its file on shutdown; one that is killed leaves a file
-behind, and the next reader unlinks it after checking the pid. A random
-`owner` id per process, not the pid, decides "is this mine", because the OS
-recycles pids.
-
-Writes are coalesced onto a 1s trailing timer: the manager notifies on every
-streamed token, and synchronous disk I/O in that hot path would stutter the UI.
-Publishing is best-effort — a failure removes this window from the fleet and
-notifies, rather than taking subagents down.
-
-Tests: `node --test --experimental-strip-types --no-warnings subagents/fleet.test.ts`
-(includes a four-process concurrent publish/read test).
+Tests: `node --test --experimental-strip-types --no-warnings session-tree/tree.test.ts`
+(46 tests, including a harness that presses real key bytes at the component).
 
 ### TUI guards (`model-info`, `git-info`)
 

@@ -17,6 +17,8 @@ export interface SessionRow {
   readonly name?: string;
   /** First user message, or pi's "(no messages)" placeholder. */
   readonly firstMessage: string;
+  /** Last thing the user asked, which is what the session is about now. */
+  readonly lastMessage?: string;
   readonly modified: number;
   readonly messageCount: number;
 }
@@ -26,7 +28,6 @@ export interface TreeNode {
   readonly id: string;
   readonly kind: TreeNodeKind;
   readonly label: string;
-  readonly depth: number;
   readonly children: readonly TreeNode[];
   readonly cwd: string;
   /** The live window holding this session open, if any. */
@@ -59,13 +60,23 @@ export function isChildSession(session: SessionRow): boolean {
   return /^(subagent|btw): /.test(session.name ?? "");
 }
 
-/** What to call a session in the sidebar. */
+/**
+ * What to call a session in the sidebar.
+ *
+ * A name you set yourself wins. Otherwise it is the last thing you asked,
+ * not the first: a session you left an hour ago is easiest to recognise by
+ * where it ended up, not by how it started.
+ */
 export function sessionLabel(
   session: SessionRow | undefined,
   window: LiveWindow | undefined,
 ): string {
-  const named = session?.name?.trim() || window?.title?.trim();
+  const named = session?.name?.trim();
   if (named) return named;
+  const last = session?.lastMessage?.trim();
+  if (last) return compactTitle(last);
+  const title = window?.title?.trim();
+  if (title) return title;
   const first = session?.firstMessage.trim();
   if (first && first !== "(no messages)") return compactTitle(first);
   return window ? `pi ${window.pid}` : "(empty session)";
@@ -80,7 +91,6 @@ function sessionNode(
     id: `session:${key}`,
     kind: "session",
     label: sessionLabel(session, window),
-    depth: 1,
     children: [],
     cwd: window?.cwd ?? session?.cwd ?? "",
     ...(window ? { window } : {}),
@@ -106,7 +116,6 @@ function sessionOrder(node: TreeNode): [number, number] {
 export function buildTree(
   sessions: readonly SessionRow[],
   windows: readonly LiveWindow[],
-  hidden: ReadonlySet<string> = new Set(),
 ): TreeNode[] {
   const windowsByFile = new Map<string, LiveWindow>();
   const unplaced: LiveWindow[] = [];
@@ -130,7 +139,6 @@ export function buildTree(
 
   const byCwd = new Map<string, TreeNode[]>();
   for (const node of nodes) {
-    if (hidden.has(node.id)) continue;
     const list = byCwd.get(node.cwd);
     if (list) list.push(node);
     else byCwd.set(node.cwd, [node]);
@@ -147,7 +155,6 @@ export function buildTree(
       id: `dir:${cwd}`,
       kind: "directory",
       label: cwd,
-      depth: 0,
       children,
       cwd,
     });
@@ -156,7 +163,6 @@ export function buildTree(
   // Directories with a window open first, then by recency. The thing you need
   // to look at should never be below the fold.
   return directories
-    .filter((directory) => !hidden.has(directory.id))
     .sort((a, b) => {
       const liveA = a.children.filter((child) => child.window).length;
       const liveB = b.children.filter((child) => child.window).length;
@@ -179,10 +185,13 @@ export function flatten(
   expanded: ReadonlySet<string>,
 ): TreeNode[] {
   const out: TreeNode[] = [];
-  for (const node of nodes) {
-    out.push(node);
-    if (expanded.has(node.id)) out.push(...node.children);
-  }
+  const walk = (list: readonly TreeNode[]) => {
+    for (const node of list) {
+      out.push(node);
+      if (expanded.has(node.id) && node.children.length > 0) walk(node.children);
+    }
+  };
+  walk(nodes);
   return out;
 }
 
@@ -200,6 +209,18 @@ function move(visible: readonly TreeNode[], state: TreeState, delta: number): Tr
   const from = current >= 0 ? current : 0;
   const next = (from + delta + visible.length) % visible.length;
   return { ...state, selectedId: visible[next]?.id };
+}
+
+function parentOf(
+  nodes: readonly TreeNode[],
+  id: string,
+): TreeNode | undefined {
+  for (const node of nodes) {
+    if (node.children.some((child) => child.id === id)) return node;
+    const deeper = parentOf(node.children, id);
+    if (deeper) return deeper;
+  }
+  return undefined;
 }
 
 export type TreeKey = "up" | "down" | "left" | "right";
@@ -224,7 +245,7 @@ export function navigate(
   const expanded = new Set(state.expanded);
 
   if (key === "right") {
-    if (node.kind !== "directory" || node.children.length === 0) return state;
+    if (node.children.length === 0) return state;
     if (!expanded.has(node.id)) {
       expanded.add(node.id);
       return { expanded, selectedId: node.id };
@@ -232,13 +253,10 @@ export function navigate(
     return { expanded, selectedId: node.children[0]?.id ?? node.id };
   }
 
-  if (node.kind === "directory") {
-    if (!expanded.has(node.id)) return state;
+  if (expanded.has(node.id) && node.children.length > 0) {
     expanded.delete(node.id);
     return { expanded, selectedId: node.id };
   }
-  const parent = roots.find((root) =>
-    root.children.some((child) => child.id === node.id),
-  );
+  const parent = parentOf(roots, node.id);
   return parent ? { expanded, selectedId: parent.id } : state;
 }
