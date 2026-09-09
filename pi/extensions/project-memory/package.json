@@ -1,0 +1,11 @@
+{
+  "name": "pi-project-memory",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Keep the .agent/PLAN.md Now block in the system prompt",
+  "scripts": {
+    "check": "tsc --noEmit -p .",
+    "test": "node --test --experimental-strip-types --no-warnings plan.test.ts"
+  }
+}

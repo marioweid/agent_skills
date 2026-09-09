@@ -100,7 +100,13 @@ link_if_absent() {
 }
 link_if_absent "$REPO/skills" "$HOME/.pi/agent/skills/agent-skills"
 link_if_absent "$REPO/standards/AGENTS.md" "$HOME/.pi/agent/AGENTS.md"
+link_if_absent "$REPO/pi/agents" "$HOME/.pi/agent/agents"
+link_if_absent "$REPO/pi/prompts" "$HOME/.pi/agent/prompts"
 ```
+
+`pi/agents/*.md` are the five build-loop roles and `pi/prompts/build.md` is the
+command that runs them; both pin `anthropic-vertex` model ids, so a machine on a
+different provider must edit the `model:` line in each role file.
 
 ## NixOS / Home Manager
 

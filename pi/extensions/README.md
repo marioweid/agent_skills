@@ -14,9 +14,9 @@ ln -s "$PWD" ~/.pi/agent/extensions
 |---|---|
 | `subagents` | `subagent_spawn` / `_wait` / `_check` / `_cancel` / `_list` on three harnesses (pi in-process, Claude Code, Codex CLI). Max 4 concurrent. No commands: children show up in `/sessions` and in the footer. |
 | `session-tree` | `/sessions` (left on an empty prompt, and the startup picker): every pi session on the machine, each live one dotted yellow/accent/green for waiting-on-you, working, done. |
-| `ask-user` | `ask_user` — 2–5 option multiple-choice popup, with a free-text escape hatch. |
+| `ask-user` | `ask_user` — 2–5 option multiple-choice popup, with a free-text escape hatch. Chimes when it opens. |
+| `project-memory` | Injects the `## Now` block of `.agent/PLAN.md` into every system prompt. `/plan`, `/plan new <title>`. |
 | `file-search` | `fd` and `rg` as model tools. |
-| `workflows` | `workflow` — sandboxed JS orchestration scripts. `/workflows`. |
 | `model-info` | Publishes model + token usage to the footer channel. |
 | `git-info` | Publishes branch / changed files / PR to the footer channel. `/lg`, `/pr`. |
 | `ui-customization` | Renders the header and footer from the two channels above. |

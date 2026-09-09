@@ -11,25 +11,8 @@
     "openai-codex/gpt-6-astra",
     "deepseek/deepseek-v4-flash"
   ],
-  "subagents": {
-    "agentOverrides": {
-      "scout": {
-        "model": "openai-codex/gpt-6-astra",
-        "thinking": "high"
-      },
-      "reviewer": {
-        "model": "openai-codex/gpt-6-astra",
-        "thinking": "high"
-      },
-      "worker": {
-        "model": "openai-codex/gpt-5.6-terra",
-        "thinking": "medium"
-      },
-      "oracle": {
-        "model": "openai-codex/gpt-6-astra",
-        "thinking": "high"
-      }
-    }
-  },
-  "packages": ["npm:@dietrichgebert/ponytail@4.9.0", "npm:pi-subagents@0.66.0"]
+  "packages": [
+    "npm:@dietrichgebert/ponytail@4.9.0",
+    "npm:pi-subagents@0.66.0"
+  ]
 }

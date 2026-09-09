@@ -31,12 +31,6 @@ assert.deepEqual(settings.enabledModels, [
   "openai-codex/gpt-6-astra",
   "deepseek/deepseek-v4-flash",
 ]);
-assert.deepEqual(settings.subagents.agentOverrides, {
-  scout: { model: "openai-codex/gpt-6-astra", thinking: "high" },
-  reviewer: { model: "openai-codex/gpt-6-astra", thinking: "high" },
-  worker: { model: "openai-codex/gpt-5.6-terra", thinking: "medium" },
-  oracle: { model: "openai-codex/gpt-6-astra", thinking: "high" },
-});
 assert(!("lastChangelogVersion" in settings));
 assert(!("httpProxy" in settings));
 assert(!existsSync(resolve(root, "models.json")), "No models override belongs in this snapshot");
@@ -85,6 +79,19 @@ for (const [path, entry] of Object.entries(json("extensions/package-lock.json").
 
 const guide = readFileSync(resolve(root, "README.md"), "utf8");
 assert(guide.includes("@earendil-works/pi-coding-agent@0.85.1"));
+
+// The build loop dispatches these five roles by name; a missing or renamed file
+// fails at spawn time, deep inside a run. Catch it here instead.
+const roles = ["scout", "architect", "implementer", "reviewer", "scribe"];
+for (const role of roles) {
+  const file = resolve(root, `agents/${role}.md`);
+  assert(existsSync(file), `Missing role file agents/${role}.md`);
+  const frontmatter = readFileSync(file, "utf8").split("---")[1] ?? "";
+  assert.match(frontmatter, new RegExp(`^name: ${role}$`, "m"), `agents/${role}.md: name must be ${role}`);
+  assert.match(frontmatter, /^model: \S+\/\S+$/m, `agents/${role}.md: model must be provider/id`);
+  assert.match(frontmatter, /^tools: /m, `agents/${role}.md: tools allowlist is required`);
+}
+
 console.log(
-  "PASS: direct Codex snapshot, model preferences, exact pins, lock records, no machine-specific values",
+  "PASS: direct Codex snapshot, model preferences, exact pins, lock records, role files, no machine-specific values",
 );

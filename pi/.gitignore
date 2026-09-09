@@ -7,6 +7,10 @@
 npm/*
 !npm/package.json
 !npm/package-lock.json
+!agents/
+!agents/**
+!prompts/
+!prompts/**
 !extensions/
 !extensions/**
 extensions/node_modules/
