@@ -27,6 +27,7 @@ import {
   enterActionFor,
   formatAge,
   nodeLabel,
+  openFleetView,
   removeActionFor,
 } from "./src/ui/fleet.ts";
 
@@ -391,14 +392,14 @@ test("ctrl+x deletes a session nothing has open", () => {
   assert.equal(removeActionFor(roots[0]!.children[0]!, isOwn, undefined), "delete");
 });
 
-test("ctrl+x never offers to delete a transcript a pi is writing to", () => {
-  const live = buildTree([window({ sessionFile: "/s/a.jsonl" })], [session()]);
-  assert.equal(removeActionFor(live[0]!.children[0]!, isOwn, undefined), "hide");
+test("ctrl+x refuses, rather than silently hiding, a transcript pi is writing to", () => {
+  const live = buildTree([window({ owner: "theirs", sessionFile: "/sessions/a.jsonl" })], [session()]);
+  assert.equal(removeActionFor(live[0]!.children[0]!, isOwn, undefined), "blocked-live");
 
   const current = buildTree([], [session({ path: "/s/here.jsonl" })]);
   assert.equal(
     removeActionFor(current[0]!.children[0]!, isOwn, "/s/here.jsonl"),
-    "hide",
+    "blocked-current",
     "the session this window is in must never be deletable",
   );
 });
@@ -476,4 +477,103 @@ test("formatAge reads naturally at each scale", () => {
   assert.equal(formatAge(0, 90_000), "1m 30s");
   assert.equal(formatAge(0, 3_930_000), "1h 5m");
   assert.equal(formatAge(0, 200_000_000), "2d 7h");
+});
+
+// --- keyboard ---------------------------------------------------------------
+
+/**
+ * Drives the real component through `handleInput`. The first version of ctrl+x
+ * passed every unit test and still did nothing useful, because the view opens
+ * with the one row it refuses to delete already selected.
+ */
+function harness(currentSessionPath: string | undefined, sessions: SessionSummary[]) {
+  const store = new FleetStore(tempDir("probe-"), process.pid, () => true);
+  store.publish("/repo/a", [], currentSessionPath);
+
+  const theme = new Proxy({}, { get: () => (...a: unknown[]) => String(a.at(-1) ?? "") });
+  const tui = { terminal: { rows: 30 }, requestRender() {} };
+  const keys = {
+    matches: (d: string, n: string) =>
+      (n === "tui.select.cancel" && d === "\x1b") ||
+      (n === "tui.select.confirm" && d === "\r") ||
+      (n === "tui.select.down" && d === "\x1b[B"),
+  };
+
+  let component: { handleInput(d: string): void; render(w: number): string[] };
+  let outcome: unknown = "open";
+  const ctx = {
+    ui: {
+      custom: (factory: (t: unknown, th: unknown, k: unknown, done: (v: unknown) => void) => unknown) => {
+        component = factory(tui, theme, keys, (v) => {
+          outcome = v;
+        }) as typeof component;
+        return new Promise<never>(() => {});
+      },
+    },
+  };
+  void openFleetView(ctx as never, store, sessions, {
+    forget: () => false,
+    currentSessionPath: () => currentSessionPath,
+  }, new Set());
+
+  return {
+    press: (data: string) => component.handleInput(data),
+    footer: () => component.render(100).at(-1)?.trim() ?? "",
+    rows: () =>
+      component
+        .render(100)
+        .slice(2, 14)
+        .map((line) => line.split("│")[0]?.trimEnd() ?? "")
+        .filter(Boolean),
+    outcome: () => outcome,
+  };
+}
+
+const HERE = "/sessions/here.jsonl";
+const twoSessions = (): SessionSummary[] => [
+  session({ path: HERE, firstMessage: "current session", modified: 9 }),
+  session({ path: "/sessions/old.jsonl", firstMessage: "old session", modified: 5 }),
+];
+
+test("the view opens on the session this window is in", () => {
+  const view = harness(HERE, twoSessions());
+  assert.match(view.rows().join("\n"), /current session {2}←/);
+});
+
+test("ctrl+x on the current session explains itself instead of hiding it", () => {
+  const view = harness(HERE, twoSessions());
+  const before = view.rows();
+  view.press("\x18");
+  assert.match(view.footer(), /You are in this session/);
+  assert.deepEqual(view.rows(), before, "the row must not vanish");
+  assert.equal(view.outcome(), "open", "and nothing is handed to the caller");
+});
+
+test("ctrl+x on another session asks the caller to delete it", () => {
+  const view = harness(HERE, twoSessions());
+  view.press("\x1b[B");
+  view.press("\x18");
+  assert.deepEqual(view.outcome(), {
+    action: "delete",
+    sessionPath: "/sessions/old.jsonl",
+    label: "old session",
+  });
+});
+
+test("ctrl+x on a directory hides it and says so", () => {
+  const view = harness(undefined, twoSessions());
+  assert.match(view.rows().join("\n"), /repo\/a/);
+  view.press("\x18");
+  assert.match(view.footer(), /Directories are not deleted/);
+  assert.match(
+    view.rows().join("\n"),
+    /No pi sessions found/,
+    "the directory and its sessions are hidden",
+  );
+});
+
+test("escape closes with no action", () => {
+  const view = harness(HERE, twoSessions());
+  view.press("\x1b");
+  assert.deepEqual(view.outcome(), { action: "none" });
 });

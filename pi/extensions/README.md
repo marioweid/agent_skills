@@ -113,8 +113,12 @@ than appearing twice.
 | own agent, settled | forgotten for real — gone from `/fleet` and `/subagents` |
 | own agent, running | confirm, then abort and forget |
 | session, nothing has it open | confirm, then delete the transcript and its artifacts from disk |
-| session that is live or is yours | hidden only; never deletable while a pi is writing to it |
+| session that is live or is yours | refused with a reason; a transcript being written to is never deletable |
 | another window's row, or a directory | hidden locally; its owner would republish it within the second |
+
+Every outcome writes a line to the footer. The view opens on the session you
+are in, which is exactly the row that refuses deletion, so a silent no-op there
+is indistinguishable from a broken key.
 
 Hidden rows are session-scoped: `^r` restores them, and so does restarting pi.
 Hiding a busy row also clears the running badge its parents showed for it.

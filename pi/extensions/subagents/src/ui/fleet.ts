@@ -77,10 +77,18 @@ export function enterActionFor(
 
 /**
  * What ctrl+x does on a node. Rows this window owns are really removed, and a
- * session that nothing has open can be deleted from disk. Anything else is
- * only hidden here, since its owner would republish it within the second.
+ * session that nothing has open can be deleted from disk. Rows belonging to
+ * another window are hidden, since their owner would republish them within the
+ * second. A session that is being written to is refused outright: silently
+ * hiding a row the user asked to delete looks exactly like a broken key.
  */
-export type RemoveAction = "forget" | "abort" | "delete" | "hide";
+export type RemoveAction =
+  | "forget"
+  | "abort"
+  | "delete"
+  | "hide"
+  | "blocked-current"
+  | "blocked-live";
 
 export function removeActionFor(
   node: FleetNode,
@@ -92,8 +100,12 @@ export function removeActionFor(
     return node.agent?.status === "running" ? "abort" : "forget";
   }
   if (node.kind === "session") {
-    // Never offer to delete a transcript that a running pi is writing to.
-    if (isLive(node) || node.session?.path === currentSessionPath) return "hide";
+    // Never delete a transcript a running pi is writing to. Both sides can be
+    // undefined, which must not count as a match.
+    if (currentSessionPath && node.session?.path === currentSessionPath) {
+      return "blocked-current";
+    }
+    if (isLive(node)) return "blocked-live";
     return node.session?.path ? "delete" : "hide";
   }
   return "hide";
@@ -158,7 +170,7 @@ export function detailLines(
 
   if (node.kind === "session") {
     const session: SessionSummary | undefined = node.session;
-    const here = session?.path === currentSessionPath;
+    const here = currentSessionPath !== undefined && session?.path === currentSessionPath;
     return [
       node.label,
       "",
@@ -235,9 +247,11 @@ class FleetView implements Component, Focusable {
 
     // Open on this window's own session so the common case needs no keys.
     const here = this.controls.currentSessionPath();
-    const directory = this.roots.find((dir) =>
-      dir.children.some((child) => child.session?.path === here),
-    );
+    const directory = here
+      ? this.roots.find((dir) =>
+          dir.children.some((child) => child.session?.path === here),
+        )
+      : undefined;
     if (directory) {
       const expanded = new Set(this.state.expanded);
       expanded.add(directory.id);
@@ -313,30 +327,51 @@ class FleetView implements Component, Focusable {
     }
   }
 
-  /** ctrl+x on the current row. Returns an outcome when it needs the caller. */
+  /**
+   * ctrl+x on the current row. Returns an outcome when the command handler has
+   * to take over; otherwise acts here and always leaves a notice, so the key
+   * never appears to do nothing.
+   */
   private remove(node: FleetNode): FleetOutcome | undefined {
     const action = removeActionFor(
       node,
       this.isOwn,
       this.controls.currentSessionPath(),
     );
-    if (action === "abort") {
-      // Killing running work needs a confirmation, which cannot be shown from
-      // inside this overlay, so hand it back to the command handler.
-      return { action: "abort", agentId: node.agent?.id ?? "", title: node.label };
+    switch (action) {
+      case "abort":
+        // Killing running work needs a confirmation, which cannot be shown
+        // from inside this overlay, so hand it back to the command handler.
+        return { action: "abort", agentId: node.agent?.id ?? "", title: node.label };
+      case "delete":
+        return {
+          action: "delete",
+          sessionPath: node.session?.path ?? "",
+          label: node.label,
+        };
+      case "blocked-current":
+        this.notice =
+          "You are in this session — switch to another one before deleting it.";
+        return undefined;
+      case "blocked-live":
+        this.notice = `Open in pi ${node.window?.pid} — close that window before deleting it.`;
+        return undefined;
+      case "forget":
+        if (this.controls.forget(node.agent?.id ?? "")) {
+          this.notice = `Removed ${node.label}.`;
+          return undefined;
+        }
+        this.notice = `${node.label} is still being waited on; hidden instead.`;
+        this.hidden.add(node.id);
+        return undefined;
+      default:
+        this.hidden.add(node.id);
+        this.notice =
+          node.kind === "directory"
+            ? `Hid ${node.label}. Directories are not deleted; ^r restores.`
+            : `Hid ${node.label} — another window owns it. ^r restores.`;
+        return undefined;
     }
-    if (action === "delete") {
-      return {
-        action: "delete",
-        sessionPath: node.session?.path ?? "",
-        label: node.label,
-      };
-    }
-    if (action === "forget" && this.controls.forget(node.agent?.id ?? "")) {
-      return undefined;
-    }
-    this.hidden.add(node.id);
-    return undefined;
   }
 
   handleInput(data: string): void {
@@ -358,7 +393,12 @@ class FleetView implements Component, Focusable {
       this.close({ action: "spawn", cwd: node.cwd });
       return;
     }
-    if (data === KEY_CTRL_X && node) {
+    if (data === KEY_CTRL_X) {
+      if (!node) {
+        this.notice = "Nothing selected.";
+        this.tui.requestRender();
+        return;
+      }
       const outcome = this.remove(node);
       if (outcome) {
         this.close(outcome);
