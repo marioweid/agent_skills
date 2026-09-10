@@ -60,6 +60,7 @@ Global instructions for all projects. Project files override these.
 - **Test the edges**: empty input, boundaries, malformed data, missing files, network failure. Every handled error path gets a test that triggers it.
 - **Mock only** what is slow, non-deterministic, or an external service you do not control. Never mock the logic under test.
 - **Prove the test can fail** — break the code, watch it go red, fix it. `cargo-mutants` / `mutmut` for systematic proof; `proptest` / `hypothesis` for parsers, serialisation, and algorithms.
+- **Non-trivial logic ships one runnable check** (a branch, a loop, a parser, a money/security path); trivial one-liners don't need one.
 
 ## Toolchain
 
@@ -67,7 +68,7 @@ Look up the current stable version when adding a dependency, action, or tool ver
 
 | Stack | Tools | Skill to load |
 |---|---|---|
-| Python 3.13 | `uv`, `ruff check`/`format`, `ty check`, `pytest -q` — never pip/poetry/black/mypy | `python-pro`, `modern-python`, `python-design-patterns`, `fastapi` |
+| Python 3.13 | `uv`, `ruff check`/`format`, `ty check`, `pytest -q` — never pip/poetry/black/mypy | `python-pro`, `modern-python`, `fastapi` |
 | Node 22, ESM | `oxlint`, `oxfmt`, `vitest`, `tsc --noEmit` — never eslint/prettier | `typescript-pro` |
 | Rust stable | `cargo clippy --all-targets --all-features -- -D warnings`, `cargo fmt`, `cargo test`, `cargo deny check` | `rust-engineer` |
 | Go | standard toolchain, table-driven tests | `golang-pro` |

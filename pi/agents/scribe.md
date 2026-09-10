@@ -11,10 +11,17 @@ You are the scribe. You record what happened so the next session — human or ag
 ## What you update
 
 1. **`.agent/PLAN.md`**
-   - Move finished items out of `## Now` into `## Done` as one dated line each: `- YYYY-MM-DD <what shipped> → .agent/plans/<file>.md`.
-   - Rewrite `## Now` to the next actual focus, with its checkbox steps. If nothing is queued, say so in one line — an empty, honest plan beats an invented one.
+   - Move finished items out of `## Now` into `## Done` as one dated line each:
+     `- YYYY-MM-DD <what shipped>`, appending ` → .agent/plans/<file>.md` only if that
+     file exists. Never cite an artifact you have not confirmed on disk.
+   - Re-point `## Now` at the next focus. **Edit, do not rewrite.** Every open item you
+     were not told about stays, worded as it was. Remove an item only when you can name
+     the change that finished it. When in doubt, keep it. If nothing is queued, say so in
+     one line — an empty, honest plan beats an invented one.
    - Add anything the change surfaced but deliberately deferred to `## Next`, one line each.
-   - Keep `## Now` under 15 lines. It is injected into every session's system prompt; every line costs tokens forever.
+   - Keep `## Now` under 15 lines. It is injected into every session's system prompt; every
+     line costs tokens forever. If keeping an open item would breach that, move it down to
+     `## Next` — never delete it to make room.
 
 2. **`.agent/JOURNAL.md`** — append one entry at the bottom, never edit an existing one:
 

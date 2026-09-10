@@ -16,9 +16,6 @@ Vendored skills (under `skills/`):
 
 - `brainstorming`
 - `systematic-debugging`
-- `writing-plans`
-- `executing-plans`
-- `verification-before-completion`
 - `test-driven-development`
 
 ### MIT License

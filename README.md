@@ -21,6 +21,14 @@ pi/
 .agent/                   # this repo's own agent memory (PLAN.md, JOURNAL.md)
 ```
 
+## Design principle: one fact, one owner
+
+Each layer owns exactly one type of information, preventing contradictory rules:
+
+1. **`standards/AGENTS.md`** — policy (tools, standards, hard limits, the build loop itself)
+2. **`pi/agents/*.md`** — agent behavior and role-specific rules (pi-only)
+3. **`skills/*/SKILL.md`** — only non-derivable facts: version-specific config, supply-chain pins, post-cutoff library surfaces
+
 ## The build loop
 
 The main thread triages every request into one of three lanes (see

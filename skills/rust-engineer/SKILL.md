@@ -2,201 +2,48 @@
 name: rust-engineer
 description: Writes, reviews, and debugs idiomatic Rust code with memory safety and zero-cost abstractions. Implements ownership patterns, manages lifetimes, designs trait hierarchies, builds async applications with tokio, and structures error handling with Result/Option. Use when building Rust applications, solving ownership or borrowing issues, designing trait-based APIs, implementing async/await concurrency, creating FFI bindings, or optimizing for performance and memory safety. Invoke for Rust, Cargo, ownership, borrowing, lifetimes, async Rust, tokio, zero-cost abstractions, memory safety, systems programming.
 license: MIT
-metadata:
-  domain: language
-  triggers: Rust, Cargo, ownership, borrowing, lifetimes, async Rust, tokio, zero-cost abstractions, memory safety, systems programming
-  role: specialist
-  scope: implementation
-  output-format: code
-  related-skills: test-master
 ---
 
 # Rust Engineer
 
-Senior Rust engineer with deep expertise in the Rust 2024 edition (current stable), systems programming, memory safety, and zero-cost abstractions. Specializes in building reliable, high-performance software leveraging Rust's ownership system.
+Rust 2024 edition (current stable). Toolchain: see your always-on global
+standards (already in context) (clippy `-D warnings`, fmt, test, deny). Two
+checks that doesn't list — run both before calling test coverage adequate:
 
-## Core Workflow
+- `cargo careful test` — stdlib debug assertions + UB checks where Miri can't run.
+- `cargo mutants` — mutation testing; a surviving mutant is an untested branch.
 
-1. **Analyze ownership** — Design lifetime relationships and borrowing patterns; annotate lifetimes explicitly where inference is insufficient
-2. **Design traits** — Create trait hierarchies with generics and associated types
-3. **Implement safely** — Write idiomatic Rust with minimal unsafe code; document every `unsafe` block with its safety invariants
-4. **Handle errors** — Use `Result`/`Option` with the `?` operator; `thiserror` for libraries, `anyhow` for applications. Log at boundaries with `tracing`, never `println!`/`eprintln!`
-5. **Validate** — Run `cargo clippy --all-targets --all-features -- -D warnings`, `cargo fmt`, `cargo test`, `cargo deny check` (advisories/licenses/bans), and `cargo careful test` (UB checks); fix all warnings before finalising
+## Error handling convention
 
-## Reference Guide
+`thiserror` for library crates (typed variants callers can match on), `anyhow`
+for binaries (context chains, no public error type to maintain). Log at
+boundaries with `tracing` — a bare `println!`/`eprintln!` in library code is a
+bug, not a style nit.
 
-Load detailed guidance based on context:
+## Cargo.toml lint denials — set these, don't rely on clippy defaults
 
-| Topic | Reference | Load When |
-|-------|-----------|-----------|
-| Ownership | `references/ownership.md` | Lifetimes, borrowing, smart pointers, Pin |
-| Traits | `references/traits.md` | Trait design, generics, associated types, derive |
-| Error Handling | `references/error-handling.md` | Result, Option, ?, custom errors, thiserror |
-| Async | `references/async.md` | async/await, tokio, futures, streams, concurrency |
-| Testing | `references/testing.md` | Unit/integration tests, proptest, benchmarks |
-
-## Key Patterns with Examples
-
-### Ownership & Lifetimes
-
-```rust
-// Explicit lifetime annotation — borrow lives as long as the input slice
-fn longest<'a>(x: &'a str, y: &'a str) -> &'a str {
-    if x.len() > y.len() { x } else { y }
-}
-
-// Prefer borrowing over cloning
-fn process(data: &[u8]) -> usize {   // &[u8] not Vec<u8>
-    data.iter().filter(|&&b| b != 0).count()
-}
-```
-
-### Trait-Based Design
-
-```rust
-use std::fmt;
-
-trait Summary {
-    fn summarise(&self) -> String;
-    fn preview(&self) -> String {          // default implementation
-        format!("{}...", &self.summarise()[..50])
-    }
-}
-
-#[derive(Debug)]
-struct Article { title: String, body: String }
-
-impl Summary for Article {
-    fn summarise(&self) -> String {
-        format!("{}: {}", self.title, self.body)
-    }
-}
-```
-
-### Error Handling with `thiserror`
-
-```rust
-use thiserror::Error;
-
-#[derive(Debug, Error)]
-pub enum AppError {
-    #[error("I/O error: {0}")]
-    Io(#[from] std::io::Error),
-    #[error("parse error for value `{value}`: {reason}")]
-    Parse { value: String, reason: String },
-}
-
-// ? propagates errors ergonomically
-fn read_config(path: &str) -> Result<String, AppError> {
-    let content = std::fs::read_to_string(path)?;  // Io variant via #[from]
-    Ok(content)
-}
-```
-
-### Async / Await with Tokio
-
-```rust
-use tokio::time::{sleep, Duration};
-
-#[tokio::main]
-async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let result = fetch_data("https://example.com").await?;
-    println!("{result}");
-    Ok(())
-}
-
-async fn fetch_data(url: &str) -> Result<String, reqwest::Error> {
-    let body = reqwest::get(url).await?.text().await?;
-    Ok(body)
-}
-
-// Spawn concurrent tasks — never mix blocking calls into async context
-async fn parallel_work() {
-    let (a, b) = tokio::join!(
-        sleep(Duration::from_millis(100)),
-        sleep(Duration::from_millis(100)),
-    );
-}
-```
-
-### Validation Commands
-
-```bash
-cargo fmt                                            # format
-cargo clippy --all-targets --all-features -- -D warnings  # lints, warnings as errors
-cargo test                                           # unit + integration tests
-cargo test --doc                                     # doctests
-cargo deny check                                      # advisories, licenses, bans
-cargo careful test                                   # stdlib debug assertions + UB checks
-cargo mutants                                         # mutation testing (verify tests catch bugs)
-cargo bench                                           # criterion benchmarks (if present)
-```
-
-### Cargo.toml Lints
-
-Enforce panic prevention and hygiene at the crate level so violations fail the build:
+Default clippy warnings don't fail a build. This crate-level config does:
 
 ```toml
 [lints.clippy]
 pedantic = { level = "warn", priority = -1 }
-# Panic prevention
 unwrap_used = "deny"
 expect_used = "warn"
 panic = "deny"
 panic_in_result_fn = "deny"
 unimplemented = "deny"
-# No cheating
-allow_attributes = "deny"
-# Code hygiene
 dbg_macro = "deny"
 todo = "deny"
 print_stdout = "deny"
 print_stderr = "deny"
-# Safety
 await_holding_lock = "deny"
 large_futures = "deny"
 exit = "deny"
 mem_forget = "deny"
-# Pedantic relaxations (too noisy)
-module_name_repetitions = "allow"
+allow_attributes = "deny"
+module_name_repetitions = "allow"   # pedantic relaxation, too noisy
 similar_names = "allow"
 ```
 
-## Constraints
-
-### MUST DO
-- Use ownership and borrowing for memory safety
-- Minimize unsafe code (document all unsafe blocks with safety invariants)
-- Use type system for compile-time guarantees
-- Handle all errors explicitly (`Result`/`Option`)
-- Add comprehensive documentation with examples
-- Run `cargo clippy` and fix all warnings
-- Use `cargo fmt` for consistent formatting
-- Write tests including doctests
-- Inject dependencies through constructors (`T::new(deps)`); keep stateless logic as free functions, not methods on a stateless struct
-- Bundle shared app state in one context struct passed by reference (`&AppState`), not globals / `lazy_static` / `once_cell` singletons
-- Keep handlers and commands thin — decode, call a method on the service, encode; orchestration lives on the service type
-
-### MUST NOT DO
-- Use `unwrap()` or `expect()` in production code (both panic; prefer `?`/`Result` — `unwrap_used` is denied, `expect_used` warned)
-- Add a struct or `impl` block just to group stateless functions (use a module of free functions)
-- Create memory leaks or dangling pointers
-- Use `unsafe` without documenting safety invariants
-- Ignore clippy warnings
-- Mix blocking and async code incorrectly
-- Skip error handling
-- Use `String` when `&str` suffices
-- Clone unnecessarily (use borrowing)
-
-## Output Templates
-
-When implementing Rust features, provide:
-1. Type definitions (structs, enums, traits)
-2. Implementation with proper ownership
-3. Error handling with custom error types
-4. Tests (unit, integration, doctests)
-5. Brief explanation of design decisions
-
-## Knowledge Reference
-
-Rust 2024 edition, Cargo, ownership/borrowing, lifetimes, traits, generics, async/await, tokio, Result/Option, thiserror/anyhow, tracing, serde, clippy, rustfmt, cargo-test, cargo-deny, cargo-careful, cargo-mutants, proptest, criterion benchmarks, MIRI, unsafe Rust
+Every `unsafe` block gets a `// SAFETY:` comment naming the invariant it
+upholds — clippy doesn't enforce this, review does.
