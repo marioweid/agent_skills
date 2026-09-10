@@ -17,13 +17,13 @@ function fixture(files: Record<string, string>) {
 test("parses frontmatter, inline tool list, and body", () => {
   const dir = fixture({
     "critic.md":
-      "---\nname: critic\ndescription: Adversarial reviewer. Writes no code.\ntools: read, grep, ls\nmodel: anthropic-vertex/claude-opus-5\nthinking: high\n---\n\nYou are a critic.\n",
+      "---\nname: critic\ndescription: Adversarial reviewer. Writes no code.\ntools: read, grep, ls\nmodel: openai-codex/gpt-5.6-sol\nthinking: high\n---\n\nYou are a critic.\n",
   });
   const { roles, rejected } = loadAgentRoles(dir);
   assert.deepEqual(rejected, []);
   assert.equal(roles[0]?.name, "critic");
   assert.deepEqual(roles[0]?.tools, ["read", "grep", "ls"]);
-  assert.equal(roles[0]?.model, "anthropic-vertex/claude-opus-5");
+  assert.equal(roles[0]?.model, "openai-codex/gpt-5.6-sol");
   assert.equal(roles[0]?.reasoningEffort, "high");
   assert.equal(roles[0]?.prompt, "You are a critic.");
   assert.match(applyRole(roles[0]!, "review X"), /You are a critic\.[\s\S]*review X/);

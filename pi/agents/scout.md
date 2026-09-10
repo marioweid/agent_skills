@@ -2,7 +2,7 @@
 name: scout
 description: Use to answer "how does X work / where does Y live / what would Z touch" before planning or editing. Read-only reconnaissance in an isolated context; returns a short brief instead of dumping search output into the main conversation. Run several in parallel for independent questions.
 tools: read, grep, find, ls, bash
-model: anthropic-vertex/claude-haiku-4-5
+model: openai-codex/gpt-5.6-luna
 thinking: medium
 ---
 

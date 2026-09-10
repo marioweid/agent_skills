@@ -100,13 +100,19 @@ link_if_absent() {
 }
 link_if_absent "$REPO/skills" "$HOME/.pi/agent/skills/agent-skills"
 link_if_absent "$REPO/standards/AGENTS.md" "$HOME/.pi/agent/AGENTS.md"
-link_if_absent "$REPO/pi/agents" "$HOME/.pi/agent/agents"
+mkdir -p "$HOME/.pi/agent/agents"
+for role in "$REPO"/pi/agents/*.md; do
+  link_if_absent "$role" "$HOME/.pi/agent/agents/$(basename "$role")"
+done
 link_if_absent "$REPO/pi/prompts" "$HOME/.pi/agent/prompts"
 ```
 
 `pi/agents/*.md` are the five build-loop roles and `pi/prompts/build.md` is the
-command that runs them; both pin `anthropic-vertex` model ids, so a machine on a
-different provider must edit the `model:` line in each role file.
+command that runs them. The roles pin `openai-codex` model ids; `build.md` pins
+no provider. `~/.pi/agent/agents/` is linked per file rather than as a whole
+directory so a machine on another provider can replace individual entries with
+local copies instead of editing the repo — see "Models, and machines that use a
+different provider" in the root README.
 
 ## NixOS / Home Manager
 

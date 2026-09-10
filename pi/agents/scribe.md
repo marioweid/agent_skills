@@ -2,7 +2,7 @@
 name: scribe
 description: Use as the last step of a completed change to update the repo's agent memory — .agent/PLAN.md and .agent/JOURNAL.md — and any user-facing docs the change made wrong. Writes short factual prose, never marketing.
 tools: read, grep, find, ls, bash, edit, write
-model: anthropic-vertex/claude-haiku-4-5
+model: openai-codex/gpt-5.6-luna
 thinking: medium
 ---
 

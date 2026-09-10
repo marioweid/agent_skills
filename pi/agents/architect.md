@@ -2,7 +2,7 @@
 name: architect
 description: Use to design the approach for a non-trivial feature or change before any code is written. Turns a goal plus scout briefs into a short written plan with steps and acceptance checks. Writes the plan file; writes no implementation code.
 tools: read, grep, find, ls, bash, write
-model: anthropic-vertex/claude-opus-5
+model: openai-codex/gpt-5.6-sol
 thinking: high
 ---
 

@@ -14,5 +14,3 @@ npm/*
 !extensions/
 !extensions/**
 extensions/node_modules/
-# machine-specific: GCP project id + local credential path
-extensions/00-vertex-env.ts

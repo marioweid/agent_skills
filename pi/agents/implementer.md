@@ -2,7 +2,7 @@
 name: implementer
 description: Use to write the code for an approved plan. Executes the plan's steps in order, keeps the change surgical, and runs the project's own checks before reporting. Only one implementer runs at a time — parallel writers corrupt each other's work.
 tools: read, grep, find, ls, bash, edit, write
-model: anthropic-vertex/claude-sonnet-5
+model: openai-codex/gpt-5.6-terra
 thinking: high
 ---
 

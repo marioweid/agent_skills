@@ -2,7 +2,7 @@
 name: reviewer
 description: Use as the adversarial gate after code is written and the automated checks pass. Reviews the diff in a clean context against the plan, hunting for correctness bugs, missing error paths, and over-engineering. Read-only — it reports, it never fixes.
 tools: read, grep, find, ls, bash
-model: anthropic-vertex/claude-opus-5
+model: openai-codex/gpt-5.6-sol
 thinking: high
 ---
 
