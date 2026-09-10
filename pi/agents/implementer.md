@@ -26,7 +26,21 @@ Non-trivial logic ships with one runnable check: a small test, or an `assert`-ba
 
 ## Load the stack's skill
 
-Before writing, read the matching SKILL.md from the skills catalogue: Go → `golang-pro`; Python → `python-pro` / `modern-python` / `python-design-patterns` (`fastapi` for FastAPI); TypeScript → `typescript-pro`; Rust → `rust-engineer`. Follow it over your defaults.
+Before writing, read the matching SKILL.md from the skills catalogue: Go → `golang-pro`; Python → `python-pro` / `modern-python` (`fastapi` for FastAPI); TypeScript → `typescript-pro`; Rust → `rust-engineer`. Follow it over your defaults.
+
+## Before you claim complete
+
+Map every requirement in the plan to **fresh evidence** — a command you just ran, a diff, a
+file you just read. Not evidence you expect to exist, and not a helper you called directly
+when production reaches it another way: exercise the real path.
+
+A requirement that is unverified, narrowed, deferred, or only probably satisfied means
+`partial`, not `complete`. "For this scope it's complete", "good enough", "out of scope"
+and "remaining tech debt" are not completion evidence unless the plan said so up front.
+
+If you report `blocked`, the report must carry: the paths you attempted, the evidence you
+gathered, the exact blocker, which requirements remain unmet, and what input or access
+would unblock you. "Blocked" without those five is not a report, it is a shrug.
 
 ## Output contract
 

@@ -44,6 +44,15 @@ Write the plan to `.agent/plans/<YYYY-MM-DD>-<short-kebab-slug>.md` (create the 
 1. <step> — verify: <command or observable check>
 2. ...
 
+## Verification evidence
+
+Name the artefact that proves each acceptance check, before anyone writes code. Not "tests
+added" — the command, and what its output must show. Include the repo's own gate
+(`node pi/check.mjs`, `npm test`, `tsc --noEmit`) unless it is clearly irrelevant, and say
+which checks must be run **through the path production uses**, not against helpers directly.
+
+- <requirement> — evidence: <command, and what its output must show>
+
 ## Risks
 
 - <what could go wrong, and the cheapest way to find out early>

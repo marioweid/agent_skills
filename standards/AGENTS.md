@@ -89,8 +89,18 @@ PRs describe what the code does now — not discarded approaches or prior iterat
 
 Parallel agents that write need separate worktrees (`wt switch <branch>`). Never share a working directory between writers.
 
-## Documentation lookups
+## Looking things up
 
-Use Context7 MCP for any library, framework, SDK, or CLI question — React, FastAPI, Prisma, Tailwind, anything — even when you think you know the answer; your training data lags. `resolve-library-id` first, then `query-docs` with the full question. Not for refactoring, debugging business logic, or general programming concepts. Prefer Exa (`mcp__exa__web_search_exa`) over generic web search.
+Your training data lags. Never recall a version, a flag, or an API shape from memory — check it. Cheapest source first:
+
+1. **The installed copy.** `node_modules/<pkg>`, the Homebrew Cellar path, site-packages, the package's own `docs/`, `README`, and `.d.ts`. This is the version you actually have, which beats any web page about a version you don't.
+2. **The tool itself.** `--help`, `--version`, `npm view <pkg> version`, `uv pip show`, `cargo info`.
+3. **A registry over `curl`.** `curl -s registry.npmjs.org/<pkg>/latest` returns version, license and the real dependency list as JSON — no HTML to fight.
+
+pi has no MCP, and that is deliberate (`docs/usage.md`). The three steps above still answer almost every real lookup faster than a search does — reach for them first.
+
+When a question genuinely needs the open web, `web_search` and `web_fetch` (the `web` extension) are yours: DuckDuckGo's HTML endpoint and an HTML-to-text reader, no API key, no account. Use `web_search` for discovery — "is there a lighter alternative to X", "what is current practice for Y" — and `web_fetch` when you already know the URL. Never delegate a lookup to another harness; this setup is pi-only.
+
+Never paste a config file containing credentials into a transcript. Sessions are stored in plaintext under `~/.pi/agent/sessions/`. Read the keys you need with `rg`, or redact before printing.
 
 Never add `Co-Authored-By` trailers to commits.
