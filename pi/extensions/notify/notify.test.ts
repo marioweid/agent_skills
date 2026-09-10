@@ -30,8 +30,11 @@ test("the bell waits for the last child, then rings for the whole span", () => {
   t.onRunStart(0);
   t.onChildCount(2, 1_000);
   t.onSettled(30_000);
-  assert.equal(t.onChildCount(1, 60_000), undefined, "one child left");
-  assert.equal(t.onChildCount(0, 90_000), 90_000, "last child done");
+  t.onChildCount(1, 60_000);
+  assert.equal(t.onChildCount(0, 90_000), undefined, "last child done never rings on its own");
+  // The delivered result wakes the agent; that run's settle rings for the whole span.
+  t.onRunStart(90_000);
+  assert.equal(t.onSettled(120_000), 120_000);
 });
 
 test("a child finishing while the main thread is mid-run does not ring", () => {
@@ -47,8 +50,22 @@ test("a background child spawned after the turn ended still rings on completion"
   t.onRunStart(0);
   t.onSettled(1_000);
   // /bg style: spawn, main goes idle immediately, child works for minutes.
-  assert.equal(t.onChildCount(1, 2_000), undefined);
-  assert.equal(t.onChildCount(0, 200_000), 198_000);
+  t.onChildCount(1, 2_000);
+  assert.equal(t.onChildCount(0, 200_000), undefined, "finishing child never rings on its own");
+  // The delivered result wakes the agent; its clock started when the child spawned.
+  t.onRunStart(200_000);
+  assert.equal(t.onSettled(205_000), 203_000);
+});
+
+test("a finishing child never rings on its own — the delivered result wakes the agent first", () => {
+  const t = new TurnTracker(MIN);
+  t.onRunStart(0);
+  t.onChildCount(1, 1_000);
+  assert.equal(t.onSettled(5_000), undefined, "child still running");
+  assert.equal(t.onChildCount(0, 30_000), undefined, "last child done never rings on its own");
+  // Delivering the result wakes the agent for another run.
+  t.onRunStart(30_000);
+  assert.equal(t.onSettled(60_000), 60_000, "rings on the following settle for the full span");
 });
 
 test("steady-state zero-child updates never ring on their own", () => {

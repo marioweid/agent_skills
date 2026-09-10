@@ -91,6 +91,14 @@ export function formatDuration(ms: number) {
 /**
  * Decides when the bell rings. Split out from the extension wiring so the
  * "don't ring while children are still working" rule is directly testable.
+ *
+ * Only `agent_settled` can ring — `onChildCount` reaching zero never does,
+ * because a delivered subagent result always wakes the agent for another run
+ * (`triggerTurn: true`), so that moment only ever looks like the end of the
+ * turn. Sequence: main settles while children run → silent; last child
+ * finishes → silent; the delivered result wakes the agent → `agent_start`
+ * re-arms and preserves `startedAt`; that run settles → one ring for the
+ * whole span.
  */
 export class TurnTracker {
   private startedAt: number | undefined;
@@ -110,13 +118,21 @@ export class TurnTracker {
     this.armed = true;
   }
 
-  onChildCount(count: number, now: number): number | undefined {
+  /**
+   * Tracks how many children are running. Never rings on its own: every
+   * un-consumed child completion delivers a result with `triggerTurn: true`,
+   * which wakes the agent — so the moment the count reaches zero is never
+   * actually the end of the turn. Only the `agent_settled` that follows is.
+   * One known gap: if a child settles and its result is never delivered
+   * (session shutting down), no bell — acceptable, nothing is waiting on the
+   * user by then.
+   */
+  onChildCount(count: number, now: number): void {
     if (count > this.runningChildren) {
       this.startedAt ??= now;
       this.armed = true;
     }
     this.runningChildren = count;
-    return this.maybeRing(now);
   }
 
   onSettled(now: number): number | undefined {
@@ -156,6 +172,6 @@ export default function (pi: ExtensionAPI) {
   pi.events.on(SUBAGENT_ACTIVITY_CHANNEL, (data: unknown) => {
     const activity = asActivity(data);
     if (!activity) return;
-    ring(tracker.onChildCount(activity.running, Date.now()));
+    tracker.onChildCount(activity.running, Date.now());
   });
 }
