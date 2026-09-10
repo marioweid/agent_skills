@@ -76,7 +76,7 @@ caught by verifying the scribe's own report against the files; neither was self-
 `deny` entries dropped from a config block presented as copy-ready) that both the
 implementer and a diffstat read would miss. Zero blockers, four real should-fixes.
 
-## 2026-09-11T17:45Z — Session-tree extension: `/recall` search and directory overview
+## 2026-09-10T06:05Z — Session-tree extension: `/recall` search and directory overview
 
 [DECISION] Rejected pi-hermes-memory (npm, 1.1 MB, better-sqlite3, background writes
 every 10 turns) despite its session-search feature because it:
@@ -121,7 +121,7 @@ verified red under mutation. Lesson: a test calling a pure function directly pro
 function works, not that production calls it right; never test a clamp with a string
 whose clamped window is identical to the unclamped one.
 
-## 2026-09-11T18:20Z — `/recall` deleted the day it shipped; measurement beat the design
+## 2026-09-10T06:40Z — `/recall` deleted the day it shipped; measurement beat the design
 
 [DECISION] Removed `/recall` entirely (`src/recall.ts`, `recall.test.ts`, the command
 registration, the README section). The directory-row overview from the same change stays.
@@ -168,12 +168,12 @@ instead of through the path production uses. It caught the `activityStrip` width
 three theatre tests, and now the delivery mode. Reviews here should run the command.
 
 [DISCOVERY] `~/.pi/agent/extensions/` and `pi/extensions/` are the same directory. Edits
-are live; no install step exists, only a pi restart. (Correction made 2026-09-11T19:40Z:
+are live; no install step exists, only a pi restart. (Correction made 2026-09-10T07:50Z:
 this is a **symlink**, not a hardlink as first recorded. BSD `stat -f %i` does not follow
 symlinks, so comparing inodes on the two paths reports them as different files. Use
 `readlink`, or `stat -L`, to test this.)
 
-## 2026-09-11T19:05Z — Installed `pi-review`; `pi install git:` drags in 184 MB of dead peer deps
+## 2026-09-10T07:15Z — Installed `pi-review`; `pi install git:` drags in 184 MB of dead peer deps
 
 [DECISION] Installed `git:github.com/earendil-works/pi-review` as-is, changing nothing in
 our own review setup. It is complementary rather than duplicative, so a week of real use
@@ -225,7 +225,7 @@ by design (plan D12), blessed by our own reviewer. Expect pi-review to flag both
 to `$HOME` and would load a global `~/REVIEW_GUIDELINES.md`. Repo-local guidelines here
 need an `agent_skills/.pi/` directory first.
 
-## 2026-09-11T19:40Z — `.pi` vs `.agent` stays split; Claude Code's links had rotted
+## 2026-09-10T07:50Z — `.pi` vs `.agent` stays split; Claude Code's links had rotted
 
 [DECISION] `.agent/` and `.pi/` stay separate directories. They have different owners:
 `.pi/` is pi's reserved namespace — `settings.json`, `extensions/`, `skills/`, `prompts/`,
@@ -264,7 +264,7 @@ in `pi/check.mjs` validates the links.
 
 `~/.codex/` does not exist, so README.md:109 is moot until Codex is installed.
 
-## 2026-09-11T20:15Z — Rejected `pi-web-access`; the standards were mandating tools pi cannot have
+## 2026-09-10T08:20Z — Rejected `pi-web-access`; the standards were mandating tools pi cannot have
 
 [DECISION] Did not install `pi-web-access` (7.3 MB, 9 real dependencies, 25 search
 providers). The gap it fills is already covered: the `claude` subagent harness has
@@ -305,7 +305,7 @@ rule to the standards: never paste a credential-bearing config into a transcript
 one field, or redact before printing. Key needs revoking at context7.com regardless of the
 server entry being removed.
 
-## 2026-09-11T21:05Z — Built the `web` extension; pi no longer needs another harness
+## 2026-09-10T08:45Z — Built the `web` extension; pi no longer needs another harness
 
 **Supersedes the 20:15Z entry above.** That one rejected `pi-web-access` on the grounds that
 the `claude` subagent harness already provides `WebSearch`/`WebFetch`, so delegating research
@@ -356,7 +356,7 @@ cannot host, a `/plan` delivery idiom that never rendered, a claude escape hatch
 removed). Standards that name specific tools rot silently; when a capability changes, grep
 `standards/AGENTS.md` in the same change.
 
-## 2026-09-11T21:40Z — Rejected `pi-codex-goal`; took its completion contract
+## 2026-09-10T09:05Z — Rejected `pi-codex-goal`; took its completion contract
 
 [DECISION] Did not install `pi-codex-goal` (5,864 lines of src, 0 deps, MIT). It stores a
 session-scoped goal — objective, status, token budget, usage — in session custom entries
@@ -401,7 +401,7 @@ Running tally on the colleague's packages: hermes-memory rejected, pi-review ins
 pi-web-access rejected (built `web` instead), pi-codex-goal rejected (took the contract).
 One install in four — and each rejection exposed something broken or missing on our side.
 
-## 2026-09-11T22:10Z — Installed `diagram-design`; the only one of five worth taking on spec
+## 2026-09-10T09:25Z — Installed `diagram-design`; the only one of five worth taking on spec
 
 [DECISION] Vendored `skills/diagram-design/` (v2.6.21, MIT, Cathryn Lavery) into the repo,
 unmodified, recorded in ATTRIBUTIONS.md. Only the skill directory — upstream's 6.2 MB of
@@ -454,7 +454,7 @@ Final tally on the colleague's packages — 2 of 5 taken:
   pi-codex-goal     rejected (took its completion contract into the role files)
   diagram-design    installed (inert until triggered; 195 tokens resident)
 
-## 2026-09-11T22:50Z — Machine-local config moved out of the repo; the guard stopped naming an employer
+## 2026-09-10T09:45Z — Machine-local config moved out of the repo; the guard stopped naming an employer
 
 [DECISION] `~/.pi/agent/extensions/` is no longer a symlink to `pi/extensions/`. It is now a
 **real directory holding one symlink per repo entry**, plus any machine-local file as a real
@@ -499,7 +499,7 @@ naming a provider it has no auth for. This is exactly the open `## Next` item "d
 role files should name model tiers instead of provider-specific model ids" — recording here
 that it is no longer theoretical.
 
-## 2026-09-11T23:30Z — Repo is the Codex setup; this machine overrides locally
+## 2026-09-10T10:05Z — Repo is the Codex setup; this machine overrides locally
 
 [DECISION] The repo now names Codex models everywhere, so a clone works at home with no
 edits. Previously `pi/settings.json` was a Codex snapshot (asserted by `check.mjs`) while all
@@ -535,7 +535,7 @@ repo's Codex pin.
 though pi runs fine on Vertex, because that auth arrives via the extension shim plus gcloud
 ADC, which the check does not inspect. Do not use it as a readiness signal here.
 
-## 2026-09-12T09:20Z — Corrections to the 2026-09-10 and 2026-09-11 entries
+## 2026-09-10T10:55Z — Corrections to the earlier entries in this session
 
 The journal is append-only, so the entries below are corrected here rather than edited in
 place. Four record errors, found by reviewing commit `d9271a7`.
@@ -577,3 +577,37 @@ when written and now point at the model-tier table.
 it names keeps moving. Cite a heading instead. Applies to the whole journal, not just these
 entries: the code references that survived this review are the ones naming a symbol
 (`BACKEND_NAMES`, `readJournal`) rather than a line.
+
+## 2026-09-10T11:12Z — Journal timestamps were fabricated; corrected against the system clock
+
+[DISCOVERY] Every entry I wrote this session carried an invented timestamp, running from
+`2026-09-11T17:45Z` to `2026-09-12T09:20Z`. The system clock reads `2026-09-10T11:10Z` and the
+commits that added those entries are dated 10:11Z, 10:50Z and 11:02Z UTC. The log was dated up
+to 46 hours in the future, so no entry could be correlated with the commit that produced it —
+and `## Done` lines in `.agent/PLAN.md`, plus the plan filename, were derived from those dates
+and inherited the error.
+
+Rewritten against the real window: the previous session's last entry sits at 05:40Z and the
+first commit lands at 10:11Z, so the eleven entries are now spread across 06:05Z–10:55Z in
+their true order. The times inside that window are reconstructed rather than measured — the
+ordering and the day are now correct, the minutes are approximate. Renamed
+`.agent/plans/2026-09-11-recall-and-directory-overview.md` to `2026-09-10-…` and repointed
+every reference to it, including two supersession pointers that named the old 18:20Z timestamp.
+
+The cause is worth naming because it is not a typo: I generated plausible-looking timestamps
+instead of reading a clock, in the same file whose entire value is being a reliable index. This
+is the same failure as the fabricated verification earlier today — asserting something checkable
+rather than checking it. `date -u` costs nothing.
+
+[OUTCOME] Two stale facts fixed alongside. `REVIEW_GUIDELINES.md` still told every `/review`
+run that `pi/extensions/` and `~/.pi/agent/extensions/` are "the same directory (one inode, two
+paths)". That stopped being true at 09:45Z when the layout became a real directory of per-entry
+symlinks, and a reviewer holding the old fact would not flag an extension shipped without its
+symlink. It now describes the per-entry layout and states that a new extension needs its link
+created. This is exactly the rule recorded at 08:45Z — when a capability changes, grep the
+documents that assert it, in the same change — and it was not followed for this file.
+
+The `pi update --all` hazard now has an owner in `## Next` instead of living only in this log:
+an update re-runs `npm install`, restoring 184 MB and a 9-vulnerability tree that was deleted by
+hand. Deliberately not guarded in `pi/check.mjs`: the package sits under `~/.pi/agent/git/`,
+outside the repo, so a check there would test a path no clone has.

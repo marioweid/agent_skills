@@ -1,15 +1,15 @@
 # Recall search + directory overview (session-tree)
 
-status: **partially superseded 2026-09-11.** Only the directory overview shipped. `/recall`
+status: **partially superseded 2026-09-10.** Only the directory overview shipped. `/recall`
 (D1–D8, `src/recall.ts`, `recall.test.ts`) was built and deleted the same day — measurement
 showed it reached 2 of 25 session files, 6% of bytes, because child transcripts are excluded
-and tool calls are dropped. See `.agent/JOURNAL.md` 2026-09-11T18:20Z.
+and tool calls are dropped. See `.agent/JOURNAL.md` 2026-09-10T06:40Z.
 
 **Do not copy D7.** It prescribes `pi.sendMessage(..., { deliverAs: "nextTurn" })` as the
 house pattern. That renders nothing when invoked from an idle prompt: the `nextTurn` branch
 is checked before any streaming check and parks the message until the user's next turn. Use
 `{ triggerTurn: false }`. The same bug was copied from `/plan` into this plan and out again;
-see `.agent/JOURNAL.md` 2026-09-11T18:20Z.
+see `.agent/JOURNAL.md` 2026-09-10T06:40Z.
 
 gate: no
 

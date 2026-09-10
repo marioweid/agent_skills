@@ -48,9 +48,16 @@ fine; degrading quietly on a real failure is the bug.
 A personal pi harness: extensions under `pi/extensions/`, agent role prompts under
 `pi/agents/`, skills under `skills/`, standards under `standards/`.
 
-- `pi/extensions/` and `~/.pi/agent/extensions/` are **the same directory** (one
-  inode, two paths). There is no build, no install step, no bundling. Edits are live
-  on the next pi restart. Do not suggest a sync or copy step.
+- `~/.pi/agent/extensions/` is a **real directory holding one symlink per entry** in
+  `pi/extensions/`, not a link to that folder as a whole. Machine-local files (a
+  credential shim, a provider env) live there as real files and are deliberately
+  outside the repo. There is no build, no bundling, no transpile: editing a file in
+  `pi/extensions/` is live on the next pi restart, so do not suggest a sync, copy or
+  install step for existing code.
+- **A newly added extension directory needs its symlink**, or pi never loads it:
+  `ln -sfn "$REPO/pi/extensions/<name>" ~/.pi/agent/extensions/<name>`. A change that
+  adds an extension without mentioning this is incomplete — flag it. The same applies
+  to `~/.pi/agent/agents/`, which is per-file for the same reason.
 - Extensions are TypeScript ESM, run directly by pi with no transpile. Relative
   imports carry the `.ts` extension on purpose — that is required, not a mistake.
 - Core pi packages (`@earendil-works/pi-coding-agent`, `pi-ai`, `pi-tui`) are

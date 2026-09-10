@@ -15,19 +15,26 @@ or is it pi-only?
 ## Next
 
 - Revoke the leaked Context7 API key at context7.com. It was printed into a session
-  transcript on 2026-09-11 and `~/.pi/agent/sessions/` is plaintext, so removing the server
+  transcript on 2026-09-10 and `~/.pi/agent/sessions/` is plaintext, so removing the server
   entry from `~/.claude.json` did not invalidate it.
+- `pi update --all` will undo the pi-review cleanup. `pi install git:` runs `npm install`,
+  and npm auto-installs `peerDependencies`, so it resolves the core pi packages to an old
+  version and drags in 184 MB with a 9-vulnerability tree (1 critical) for a 54 KB extension.
+  The tree is inert — pi injects the real packages — and was deleted by hand, leaving 356 KB.
+  Any update restores it silently. Not guardable from `pi/check.mjs`: the package lives under
+  `~/.pi/agent/git/`, outside the repo, so a check there would test a path no clone has.
+  Re-delete `node_modules` after updating, or pin the package and stop updating it.
 - Decide what "publishable" means for git metadata. File contents carry no employer string,
   but every commit's author email does (`git log --format=%ae`). `pi/check.mjs` scans files
   only, so it cannot see this. Either set a per-repo `user.email` going forward and accept the
   mixed history, or rewrite authorship before the repo goes anywhere public.
 
 - **Go pi-only: drop Claude Code entirely.** Remove the `claude` subagent backend
-  (`pi/extensions/subagents/src/backends/claude.ts`, `BACKEND_NAMES` in `src/domain.ts:13`,
-  the `backends` array in `src/runtime.ts:17`, `claude.test.ts` and the claude cases in
+  (`pi/extensions/subagents/src/backends/claude.ts`, `BACKEND_NAMES` in `src/domain.ts`,
+  the `backends` array in `src/runtime.ts`, `claude.test.ts` and the claude cases in
   `manager.test.ts`), the `~/.claude` symlinks, and the Claude Code column from README.md's
-  link table. Decided 2026-09-11; deliberately deferred, not urgent.
-  Unblocked 2026-09-11: the `web` extension now gives pi its own `web_search`/`web_fetch`,
+  link table. Decided 2026-09-10; deliberately deferred, not urgent.
+  Unblocked 2026-09-10: the `web` extension now gives pi its own `web_search`/`web_fetch`,
   so nothing functional depends on the claude harness any more.
   Unaffected: `anthropic-vertex/claude-*` models in `pi/agents/*.md` — that is the model
   provider, not a harness.
@@ -37,9 +44,9 @@ or is it pi-only?
 
 ## Done
 
-- 2026-09-11 Directory-row overview (activity strip + journal) in the session-tree detail pane
-  → .agent/plans/2026-09-11-recall-and-directory-overview.md
-- 2026-09-11 Evaluated and rejected `pi-hermes-memory`; built then deleted `/recall` — it reached
+- 2026-09-10 Directory-row overview (activity strip + journal) in the session-tree detail pane
+  → .agent/plans/2026-09-10-recall-and-directory-overview.md
+- 2026-09-10 Evaluated and rejected `pi-hermes-memory`; built then deleted `/recall` — it reached
   2 of 25 session files (6% of bytes), because the build loop's work lives in excluded subagent
   transcripts. Fixed the same `deliverAs: "nextTurn"` bug in `project-memory`'s `/plan`.
 - 2026-09-10 Pruned generic skills duplicate to AGENTS.md and role prompts (25 → 15 directories)
