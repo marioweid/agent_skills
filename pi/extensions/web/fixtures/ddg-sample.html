@@ -1,0 +1,636 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<!--[if IE 6]><html class="ie6" xmlns="http://www.w3.org/1999/xhtml"><![endif]-->
+<!--[if IE 7]><html class="lt-ie8 lt-ie9" xmlns="http://www.w3.org/1999/xhtml"><![endif]-->
+<!--[if IE 8]><html class="lt-ie9" xmlns="http://www.w3.org/1999/xhtml"><![endif]-->
+<!--[if gt IE 8]><!--><html xmlns="http://www.w3.org/1999/xhtml"><!--<![endif]-->
+<head>
+  <meta http-equiv="content-type" content="text/html; charset=UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=3.0, user-scalable=1" />
+  <meta name="referrer" content="origin" />
+  <meta name="HandheldFriendly" content="true" />
+  <meta name="robots" content="noindex, nofollow" />
+  <title>typescript release notes at DuckDuckGo</title>
+  <link title="DuckDuckGo (HTML)" type="application/opensearchdescription+xml" rel="search" href="//duckduckgo.com/opensearch_html_v2.xml" />
+  <link href="//duckduckgo.com/favicon.ico" rel="shortcut icon" />
+  <link rel="icon" href="//duckduckgo.com/favicon.ico" type="image/x-icon" />
+  <link id="icon60" rel="apple-touch-icon" href="//duckduckgo.com/assets/icons/meta/DDG-iOS-icon_60x60.png?v=2"/>
+  <link id="icon76" rel="apple-touch-icon" sizes="76x76" href="//duckduckgo.com/assets/icons/meta/DDG-iOS-icon_76x76.png?v=2"/>
+  <link id="icon120" rel="apple-touch-icon" sizes="120x120" href="//duckduckgo.com/assets/icons/meta/DDG-iOS-icon_120x120.png?v=2"/>
+  <link id="icon152" rel="apple-touch-icon" sizes="152x152" href="//duckduckgo.com/assets/icons/meta/DDG-iOS-icon_152x152.png?v=2"/>
+  <link rel="image_src" href="//duckduckgo.com/assets/icons/meta/DDG-icon_256x256.png">
+  <link rel="stylesheet" media="handheld, all" href="//duckduckgo.com/dist/h.7bcf94631b5964fa5ad7.css" type="text/css"/>
+</head>
+
+<body class="body--html">
+  <a name="top" id="top"></a>
+
+  <form action="/html/" method="post">
+    <input type="text" name="state_hidden" id="state_hidden" />
+  </form>
+
+  <div>
+    <div class="site-wrapper-border"></div>
+
+    <div id="header" class="header cw header--html">
+      <a title="DuckDuckGo" href="/html/" class="header__logo-wrap"></a>
+
+      <form name="x" class="header__form" action="/html/" method="post">
+        <div class="search search--header">
+          <input name="q" autocomplete="off" class="search__input" id="search_form_input_homepage" type="text" value="typescript release notes" />
+          <input name="b" id="search_button_homepage" class="search__button search__button--html" value="" title="Search" alt="Search" type="submit" />
+        </div>
+
+        
+        
+        
+        
+
+        <div class="frm__select">
+          <select name="kl">
+            
+              <option value="" >All Regions</option>
+            
+              <option value="ar-es" >Argentina</option>
+            
+              <option value="au-en" >Australia</option>
+            
+              <option value="at-de" >Austria</option>
+            
+              <option value="be-fr" >Belgium (fr)</option>
+            
+              <option value="be-nl" >Belgium (nl)</option>
+            
+              <option value="br-pt" >Brazil</option>
+            
+              <option value="bg-bg" >Bulgaria</option>
+            
+              <option value="ca-en" >Canada (en)</option>
+            
+              <option value="ca-fr" >Canada (fr)</option>
+            
+              <option value="ct-ca" >Catalonia</option>
+            
+              <option value="cl-es" >Chile</option>
+            
+              <option value="cn-zh" >China</option>
+            
+              <option value="co-es" >Colombia</option>
+            
+              <option value="hr-hr" >Croatia</option>
+            
+              <option value="cz-cs" >Czech Republic</option>
+            
+              <option value="dk-da" >Denmark</option>
+            
+              <option value="ee-et" >Estonia</option>
+            
+              <option value="fi-fi" >Finland</option>
+            
+              <option value="fr-fr" >France</option>
+            
+              <option value="de-de" >Germany</option>
+            
+              <option value="gr-el" >Greece</option>
+            
+              <option value="hk-tzh" >Hong Kong</option>
+            
+              <option value="hu-hu" >Hungary</option>
+            
+              <option value="is-is" >Iceland</option>
+            
+              <option value="in-en" >India (en)</option>
+            
+              <option value="id-en" >Indonesia (en)</option>
+            
+              <option value="ie-en" >Ireland</option>
+            
+              <option value="il-en" >Israel (en)</option>
+            
+              <option value="it-it" >Italy</option>
+            
+              <option value="jp-jp" >Japan</option>
+            
+              <option value="kr-kr" >Korea</option>
+            
+              <option value="lv-lv" >Latvia</option>
+            
+              <option value="lt-lt" >Lithuania</option>
+            
+              <option value="my-en" >Malaysia (en)</option>
+            
+              <option value="mx-es" >Mexico</option>
+            
+              <option value="nl-nl" >Netherlands</option>
+            
+              <option value="nz-en" >New Zealand</option>
+            
+              <option value="no-no" >Norway</option>
+            
+              <option value="pk-en" >Pakistan (en)</option>
+            
+              <option value="pe-es" >Peru</option>
+            
+              <option value="ph-en" >Philippines (en)</option>
+            
+              <option value="pl-pl" >Poland</option>
+            
+              <option value="pt-pt" >Portugal</option>
+            
+              <option value="ro-ro" >Romania</option>
+            
+              <option value="ru-ru" >Russia</option>
+            
+              <option value="xa-ar" >Saudi Arabia</option>
+            
+              <option value="sg-en" >Singapore</option>
+            
+              <option value="sk-sk" >Slovakia</option>
+            
+              <option value="sl-sl" >Slovenia</option>
+            
+              <option value="za-en" >South Africa</option>
+            
+              <option value="es-ca" >Spain (ca)</option>
+            
+              <option value="es-es" >Spain (es)</option>
+            
+              <option value="se-sv" >Sweden</option>
+            
+              <option value="ch-de" >Switzerland (de)</option>
+            
+              <option value="ch-fr" >Switzerland (fr)</option>
+            
+              <option value="tw-tzh" >Taiwan</option>
+            
+              <option value="th-en" >Thailand (en)</option>
+            
+              <option value="tr-tr" >Turkey</option>
+            
+              <option value="us-en" >US (English)</option>
+            
+              <option value="us-es" >US (Spanish)</option>
+            
+              <option value="ua-uk" >Ukraine</option>
+            
+              <option value="uk-en" >United Kingdom</option>
+            
+              <option value="vn-en" >Vietnam (en)</option>
+            
+          </select>
+        </div>
+
+        <div class="frm__select frm__select--last">
+          <select class="" name="df">
+            
+              <option value="" selected>Any Time</option>
+            
+              <option value="d" >Past Day</option>
+            
+              <option value="w" >Past Week</option>
+            
+              <option value="m" >Past Month</option>
+            
+              <option value="y" >Past Year</option>
+            
+          </select>
+        </div>
+      </form>
+    </div>
+
+    
+
+    
+      <!-- Web results are present -->
+      <div>
+        <div class="serp__results">
+          <div id="links" class="results">
+            
+
+            
+              
+                <div class="result results_links results_links_deep web-result ">
+                  <div class="links_main links_deep result__body"> <!-- This is the visible part -->
+                    
+                      <h2 class="result__title">
+                        <a rel="nofollow" class="result__a" href="//duckduckgo.com/l/?uddg=https%3A%2F%2Ftypescriptdocs.com%2Frelease%2Dnotes%2F&amp;rut=ed746e197817159c37b14a8c59aa22dc1e9d92f49d98223ce3b44ef358e75a36">TypeScript Release Notes | TypeScript Docs</a>
+                      </h2>
+
+                    
+
+                    
+                      <div class="result__extras">
+                        <div class="result__extras__url">
+                          <span class="result__icon">
+                            <a rel="nofollow" href="//duckduckgo.com/l/?uddg=https%3A%2F%2Ftypescriptdocs.com%2Frelease%2Dnotes%2F&amp;rut=ed746e197817159c37b14a8c59aa22dc1e9d92f49d98223ce3b44ef358e75a36">
+                              <img class="result__icon__img" width="16" height="16" alt="" src="//external-content.duckduckgo.com/ip3/typescriptdocs.com.ico" name="i15" />
+                            </a>
+                          </span>
+                          <a class="result__url" href="//duckduckgo.com/l/?uddg=https%3A%2F%2Ftypescriptdocs.com%2Frelease%2Dnotes%2F&amp;rut=ed746e197817159c37b14a8c59aa22dc1e9d92f49d98223ce3b44ef358e75a36">
+                            typescriptdocs.com/release-notes/
+                          </a>
+                          
+                            <span>&nbsp; &nbsp; 2025-05-02T00:00:00.0000000</span>
+                          
+                        </div>
+                      </div>
+                    
+
+                    
+                      
+                        <a class="result__snippet" href="//duckduckgo.com/l/?uddg=https%3A%2F%2Ftypescriptdocs.com%2Frelease%2Dnotes%2F&amp;rut=ed746e197817159c37b14a8c59aa22dc1e9d92f49d98223ce3b44ef358e75a36"><b>TypeScript</b> <b>Release</b> <b>Notes</b> This section contains the <b>release</b> <b>notes</b> for all versions of <b>TypeScript</b>, organized chronologically from newest to oldest. These <b>notes</b> provide detailed information about: New language features Breaking changes Performance improvements API updates Bug fixes Developer tooling enhancements Click on any version in the sidebar to see the detailed changes for that <b>release</b>.</a>
+                      
+                    
+
+                    <div class="clear"></div>
+                  </div>
+                </div>
+              
+            
+              
+                <div class="result results_links results_links_deep web-result ">
+                  <div class="links_main links_deep result__body"> <!-- This is the visible part -->
+                    
+                      <h2 class="result__title">
+                        <a rel="nofollow" class="result__a" href="//duckduckgo.com/l/?uddg=https%3A%2F%2Fgithub.com%2FMicrosoft%2FTypeScript%2Freleases&amp;rut=4d7e8c687b4b4e8f7af9fe6a8dd31bc5cb1c469261e52ba2b4c18f233c15af11">Releases · microsoft/TypeScript - GitHub</a>
+                      </h2>
+
+                    
+
+                    
+                      <div class="result__extras">
+                        <div class="result__extras__url">
+                          <span class="result__icon">
+                            <a rel="nofollow" href="//duckduckgo.com/l/?uddg=https%3A%2F%2Fgithub.com%2FMicrosoft%2FTypeScript%2Freleases&amp;rut=4d7e8c687b4b4e8f7af9fe6a8dd31bc5cb1c469261e52ba2b4c18f233c15af11">
+                              <img class="result__icon__img" width="16" height="16" alt="" src="//external-content.duckduckgo.com/ip3/github.com.ico" name="i15" />
+                            </a>
+                          </span>
+                          <a class="result__url" href="//duckduckgo.com/l/?uddg=https%3A%2F%2Fgithub.com%2FMicrosoft%2FTypeScript%2Freleases&amp;rut=4d7e8c687b4b4e8f7af9fe6a8dd31bc5cb1c469261e52ba2b4c18f233c15af11">
+                            github.com/Microsoft/TypeScript/releases
+                          </a>
+                          
+                        </div>
+                      </div>
+                    
+
+                    
+                      
+                        <a class="result__snippet" href="//duckduckgo.com/l/?uddg=https%3A%2F%2Fgithub.com%2FMicrosoft%2FTypeScript%2Freleases&amp;rut=4d7e8c687b4b4e8f7af9fe6a8dd31bc5cb1c469261e52ba2b4c18f233c15af11"><b>Note</b>: this tag was recreated to point at the correct commit. The npm package contained the correct content. For <b>release</b> <b>notes</b>, check out the <b>release</b> announcement fixed issues query for <b>Typescript</b> 5.9.0 (Beta). fixed issues query for <b>Typescript</b> 5.9.1 (RC). No specific changes for <b>TypeScript</b> 5.9.2 (Stable) fixed issues query for <b>Typescript</b> 5.9.3 (Stable). Downloads are available on: npm</a>
+                      
+                    
+
+                    <div class="clear"></div>
+                  </div>
+                </div>
+              
+            
+              
+                <div class="result results_links results_links_deep web-result ">
+                  <div class="links_main links_deep result__body"> <!-- This is the visible part -->
+                    
+                      <h2 class="result__title">
+                        <a rel="nofollow" class="result__a" href="//duckduckgo.com/l/?uddg=https%3A%2F%2Fwww.typescriptlang.org%2Fdocs%2Fhandbook%2Frelease%2Dnotes%2Ftypescript%2D3%2D9.html&amp;rut=b19061e632c2c63b1bd56911e28310d00dd0e2b758ae2d9ee4a337eaa71748b6">Documentation - TypeScript 3.9</a>
+                      </h2>
+
+                    
+
+                    
+                      <div class="result__extras">
+                        <div class="result__extras__url">
+                          <span class="result__icon">
+                            <a rel="nofollow" href="//duckduckgo.com/l/?uddg=https%3A%2F%2Fwww.typescriptlang.org%2Fdocs%2Fhandbook%2Frelease%2Dnotes%2Ftypescript%2D3%2D9.html&amp;rut=b19061e632c2c63b1bd56911e28310d00dd0e2b758ae2d9ee4a337eaa71748b6">
+                              <img class="result__icon__img" width="16" height="16" alt="" src="//external-content.duckduckgo.com/ip3/www.typescriptlang.org.ico" name="i15" />
+                            </a>
+                          </span>
+                          <a class="result__url" href="//duckduckgo.com/l/?uddg=https%3A%2F%2Fwww.typescriptlang.org%2Fdocs%2Fhandbook%2Frelease%2Dnotes%2Ftypescript%2D3%2D9.html&amp;rut=b19061e632c2c63b1bd56911e28310d00dd0e2b758ae2d9ee4a337eaa71748b6">
+                            www.typescriptlang.org/docs/handbook/release-notes/typescript-3-9.html
+                          </a>
+                          
+                        </div>
+                      </div>
+                    
+
+                    
+                      
+                        <a class="result__snippet" href="//duckduckgo.com/l/?uddg=https%3A%2F%2Fwww.typescriptlang.org%2Fdocs%2Fhandbook%2Frelease%2Dnotes%2Ftypescript%2D3%2D9.html&amp;rut=b19061e632c2c63b1bd56911e28310d00dd0e2b758ae2d9ee4a337eaa71748b6">We&#x27;ll be experimenting more with the feature, but we won&#x27;t be shipping it as part of this <b>release</b>. Speed Improvements <b>TypeScript</b> 3.9 ships with many new speed improvements. Our team has been focusing on performance after observing extremely poor editing/compilation speed with packages like material-ui and styled-components.</a>
+                      
+                    
+
+                    <div class="clear"></div>
+                  </div>
+                </div>
+              
+            
+              
+                <div class="result results_links results_links_deep web-result ">
+                  <div class="links_main links_deep result__body"> <!-- This is the visible part -->
+                    
+                      <h2 class="result__title">
+                        <a rel="nofollow" class="result__a" href="//duckduckgo.com/l/?uddg=https%3A%2F%2Fwww.typescriptlang.org%2Fdocs%2Fhandbook%2Frelease%2Dnotes%2Ftypescript%2D4%2D9.html&amp;rut=abde1a3bcc12c0f28adb9dcd5bab11ec3060c21f090c4a0dd652e10d4da4cda9">Documentation - TypeScript 4.9</a>
+                      </h2>
+
+                    
+
+                    
+                      <div class="result__extras">
+                        <div class="result__extras__url">
+                          <span class="result__icon">
+                            <a rel="nofollow" href="//duckduckgo.com/l/?uddg=https%3A%2F%2Fwww.typescriptlang.org%2Fdocs%2Fhandbook%2Frelease%2Dnotes%2Ftypescript%2D4%2D9.html&amp;rut=abde1a3bcc12c0f28adb9dcd5bab11ec3060c21f090c4a0dd652e10d4da4cda9">
+                              <img class="result__icon__img" width="16" height="16" alt="" src="//external-content.duckduckgo.com/ip3/www.typescriptlang.org.ico" name="i15" />
+                            </a>
+                          </span>
+                          <a class="result__url" href="//duckduckgo.com/l/?uddg=https%3A%2F%2Fwww.typescriptlang.org%2Fdocs%2Fhandbook%2Frelease%2Dnotes%2Ftypescript%2D4%2D9.html&amp;rut=abde1a3bcc12c0f28adb9dcd5bab11ec3060c21f090c4a0dd652e10d4da4cda9">
+                            www.typescriptlang.org/docs/handbook/release-notes/typescript-4-9.html
+                          </a>
+                          
+                        </div>
+                      </div>
+                    
+
+                    
+                      
+                        <a class="result__snippet" href="//duckduckgo.com/l/?uddg=https%3A%2F%2Fwww.typescriptlang.org%2Fdocs%2Fhandbook%2Frelease%2Dnotes%2Ftypescript%2D4%2D9.html&amp;rut=abde1a3bcc12c0f28adb9dcd5bab11ec3060c21f090c4a0dd652e10d4da4cda9"><b>TypeScript</b> 4.9 <b>Release</b> <b>Notes</b> For more examples, you can see the issue proposing this and the implementing pull request. We&#x27;d like to thank Oleksandr Tarasiuk who implemented and iterated on this feature with us. Unlisted Property Narrowing with the in Operator As developers, we often need to deal with values that aren&#x27;t fully known at runtime. In fact, we often don&#x27;t know if properties ...</a>
+                      
+                    
+
+                    <div class="clear"></div>
+                  </div>
+                </div>
+              
+            
+              
+                <div class="result results_links results_links_deep web-result ">
+                  <div class="links_main links_deep result__body"> <!-- This is the visible part -->
+                    
+                      <h2 class="result__title">
+                        <a rel="nofollow" class="result__a" href="//duckduckgo.com/l/?uddg=https%3A%2F%2Fgithub.com%2FMicrosoft%2FTypeScript%2Freleases%3Fafter%3Dv3.1.2&amp;rut=e7abce8d520591a3678f0441694582f77cde9466bff0e8127037a089f76bceb6">Releases · microsoft/TypeScript - GitHub</a>
+                      </h2>
+
+                    
+
+                    
+                      <div class="result__extras">
+                        <div class="result__extras__url">
+                          <span class="result__icon">
+                            <a rel="nofollow" href="//duckduckgo.com/l/?uddg=https%3A%2F%2Fgithub.com%2FMicrosoft%2FTypeScript%2Freleases%3Fafter%3Dv3.1.2&amp;rut=e7abce8d520591a3678f0441694582f77cde9466bff0e8127037a089f76bceb6">
+                              <img class="result__icon__img" width="16" height="16" alt="" src="//external-content.duckduckgo.com/ip3/github.com.ico" name="i15" />
+                            </a>
+                          </span>
+                          <a class="result__url" href="//duckduckgo.com/l/?uddg=https%3A%2F%2Fgithub.com%2FMicrosoft%2FTypeScript%2Freleases%3Fafter%3Dv3.1.2&amp;rut=e7abce8d520591a3678f0441694582f77cde9466bff0e8127037a089f76bceb6">
+                            github.com/Microsoft/TypeScript/releases?after=v3.1.2
+                          </a>
+                          
+                        </div>
+                      </div>
+                    
+
+                    
+                      
+                        <a class="result__snippet" href="//duckduckgo.com/l/?uddg=https%3A%2F%2Fgithub.com%2FMicrosoft%2FTypeScript%2Freleases%3Fafter%3Dv3.1.2&amp;rut=e7abce8d520591a3678f0441694582f77cde9466bff0e8127037a089f76bceb6">For <b>release</b> <b>notes</b>, check out the <b>release</b> announcement blog post. fixed issues query for <b>TypeScript</b> 6.0.0 (Beta). fixed issues query for <b>TypeScript</b> 6.0.1 (RC). fixed issues query for <b>TypeScript</b> 6.0.2 (Stable). Downloads are available on: npm</a>
+                      
+                    
+
+                    <div class="clear"></div>
+                  </div>
+                </div>
+              
+            
+              
+                <div class="result results_links results_links_deep web-result ">
+                  <div class="links_main links_deep result__body"> <!-- This is the visible part -->
+                    
+                      <h2 class="result__title">
+                        <a rel="nofollow" class="result__a" href="//duckduckgo.com/l/?uddg=https%3A%2F%2Fdevblogs.microsoft.com%2Ftypescript%2Fannouncing%2Dtypescript%2D7%2D0%2F&amp;rut=8d34182330094c209b4e7afcd025ff79004cb8c31992ecbe97fbc63312bd1cfa">Announcing TypeScript 7.0 - TypeScript - devblogs.microsoft.com</a>
+                      </h2>
+
+                    
+
+                    
+                      <div class="result__extras">
+                        <div class="result__extras__url">
+                          <span class="result__icon">
+                            <a rel="nofollow" href="//duckduckgo.com/l/?uddg=https%3A%2F%2Fdevblogs.microsoft.com%2Ftypescript%2Fannouncing%2Dtypescript%2D7%2D0%2F&amp;rut=8d34182330094c209b4e7afcd025ff79004cb8c31992ecbe97fbc63312bd1cfa">
+                              <img class="result__icon__img" width="16" height="16" alt="" src="//external-content.duckduckgo.com/ip3/devblogs.microsoft.com.ico" name="i15" />
+                            </a>
+                          </span>
+                          <a class="result__url" href="//duckduckgo.com/l/?uddg=https%3A%2F%2Fdevblogs.microsoft.com%2Ftypescript%2Fannouncing%2Dtypescript%2D7%2D0%2F&amp;rut=8d34182330094c209b4e7afcd025ff79004cb8c31992ecbe97fbc63312bd1cfa">
+                            devblogs.microsoft.com/typescript/announcing-typescript-7-0/
+                          </a>
+                          
+                            <span>&nbsp; &nbsp; 2026-07-08T00:00:00.0000000</span>
+                          
+                        </div>
+                      </div>
+                    
+
+                    
+                      
+                        <a class="result__snippet" href="//duckduckgo.com/l/?uddg=https%3A%2F%2Fdevblogs.microsoft.com%2Ftypescript%2Fannouncing%2Dtypescript%2D7%2D0%2F&amp;rut=8d34182330094c209b4e7afcd025ff79004cb8c31992ecbe97fbc63312bd1cfa">We encourage developers to adopt <b>TypeScript</b> 6.0 to make the transition to <b>TypeScript</b> 7.0 easier, and you can also read the <b>TypeScript</b> 6.0 <b>release</b> blog post for more details on these deprecations.</a>
+                      
+                    
+
+                    <div class="clear"></div>
+                  </div>
+                </div>
+              
+            
+              
+                <div class="result results_links results_links_deep web-result ">
+                  <div class="links_main links_deep result__body"> <!-- This is the visible part -->
+                    
+                      <h2 class="result__title">
+                        <a rel="nofollow" class="result__a" href="//duckduckgo.com/l/?uddg=https%3A%2F%2Ftypescriptdocs.com%2Frelease%2Dnotes%2FTypeScript%25206.0&amp;rut=62ac04a199362043fe9b3b9792bc81b4a11ad24eed344aa995c7e445d7428fc0">TypeScript 6.0 | TypeScript Docs</a>
+                      </h2>
+
+                    
+
+                    
+                      <div class="result__extras">
+                        <div class="result__extras__url">
+                          <span class="result__icon">
+                            <a rel="nofollow" href="//duckduckgo.com/l/?uddg=https%3A%2F%2Ftypescriptdocs.com%2Frelease%2Dnotes%2FTypeScript%25206.0&amp;rut=62ac04a199362043fe9b3b9792bc81b4a11ad24eed344aa995c7e445d7428fc0">
+                              <img class="result__icon__img" width="16" height="16" alt="" src="//external-content.duckduckgo.com/ip3/typescriptdocs.com.ico" name="i15" />
+                            </a>
+                          </span>
+                          <a class="result__url" href="//duckduckgo.com/l/?uddg=https%3A%2F%2Ftypescriptdocs.com%2Frelease%2Dnotes%2FTypeScript%25206.0&amp;rut=62ac04a199362043fe9b3b9792bc81b4a11ad24eed344aa995c7e445d7428fc0">
+                            typescriptdocs.com/release-notes/TypeScript 6.0
+                          </a>
+                          
+                            <span>&nbsp; &nbsp; 2026-05-28T00:00:00.0000000</span>
+                          
+                        </div>
+                      </div>
+                    
+
+                    
+                      
+                        <a class="result__snippet" href="//duckduckgo.com/l/?uddg=https%3A%2F%2Ftypescriptdocs.com%2Frelease%2Dnotes%2FTypeScript%25206.0&amp;rut=62ac04a199362043fe9b3b9792bc81b4a11ad24eed344aa995c7e445d7428fc0"><b>TypeScript</b> 6.0 is a significant transition <b>release</b>, designed to prepare developers for <b>TypeScript</b> 7.0 — a native port of the <b>TypeScript</b> compiler written in Go. While 6.0 maintains full compatibility with your existing <b>TypeScript</b> knowledge and API-compatibility with <b>TypeScript</b> 5.9, it introduces a number of new features, deprecations, and breaking changes that set the stage for 7.0. Less ...</a>
+                      
+                    
+
+                    <div class="clear"></div>
+                  </div>
+                </div>
+              
+            
+              
+                <div class="result results_links results_links_deep web-result ">
+                  <div class="links_main links_deep result__body"> <!-- This is the visible part -->
+                    
+                      <h2 class="result__title">
+                        <a rel="nofollow" class="result__a" href="//duckduckgo.com/l/?uddg=https%3A%2F%2Fdevblogs.microsoft.com%2Ftypescript%2F&amp;rut=4cfdba98f5441b0bd92ab277aa90c5f1b2d269159035e840a3627abfa8cd1091">TypeScript - devblogs.microsoft.com</a>
+                      </h2>
+
+                    
+
+                    
+                      <div class="result__extras">
+                        <div class="result__extras__url">
+                          <span class="result__icon">
+                            <a rel="nofollow" href="//duckduckgo.com/l/?uddg=https%3A%2F%2Fdevblogs.microsoft.com%2Ftypescript%2F&amp;rut=4cfdba98f5441b0bd92ab277aa90c5f1b2d269159035e840a3627abfa8cd1091">
+                              <img class="result__icon__img" width="16" height="16" alt="" src="//external-content.duckduckgo.com/ip3/devblogs.microsoft.com.ico" name="i15" />
+                            </a>
+                          </span>
+                          <a class="result__url" href="//duckduckgo.com/l/?uddg=https%3A%2F%2Fdevblogs.microsoft.com%2Ftypescript%2F&amp;rut=4cfdba98f5441b0bd92ab277aa90c5f1b2d269159035e840a3627abfa8cd1091">
+                            devblogs.microsoft.com/typescript/
+                          </a>
+                          
+                            <span>&nbsp; &nbsp; 2026-06-18T00:00:00.0000000</span>
+                          
+                        </div>
+                      </div>
+                    
+
+                    
+                      
+                        <a class="result__snippet" href="//duckduckgo.com/l/?uddg=https%3A%2F%2Fdevblogs.microsoft.com%2Ftypescript%2F&amp;rut=4cfdba98f5441b0bd92ab277aa90c5f1b2d269159035e840a3627abfa8cd1091">Today we are absolutely thrilled to announce the <b>release</b> of <b>TypeScript</b> 7.0 Beta! If you haven&#x27;t been following <b>TypeScript</b> 7.0&#x27;s development, this <b>release</b> is significant in that it is built on a completely new foundation. Over the past year, we have been porting the existing <b>TypeScript</b> codebase from <b>TypeScript</b> (as a bootstrapped codebase that compiles to JavaScript) over to Go. With a ...</a>
+                      
+                    
+
+                    <div class="clear"></div>
+                  </div>
+                </div>
+              
+            
+              
+                <div class="result results_links results_links_deep web-result ">
+                  <div class="links_main links_deep result__body"> <!-- This is the visible part -->
+                    
+                      <h2 class="result__title">
+                        <a rel="nofollow" class="result__a" href="//duckduckgo.com/l/?uddg=https%3A%2F%2Fwww.gitwatchman.com%2Ftrack%2Fmicrosoft%2Ftypescript&amp;rut=4009f6018e36fb151513debcd0cf240b2482adcc9a124da4bdbc4ab727786123">TypeScript Latest Version v7.0.2 — Release Notes &amp; Changelog | GitWatchman</a>
+                      </h2>
+
+                    
+
+                    
+                      <div class="result__extras">
+                        <div class="result__extras__url">
+                          <span class="result__icon">
+                            <a rel="nofollow" href="//duckduckgo.com/l/?uddg=https%3A%2F%2Fwww.gitwatchman.com%2Ftrack%2Fmicrosoft%2Ftypescript&amp;rut=4009f6018e36fb151513debcd0cf240b2482adcc9a124da4bdbc4ab727786123">
+                              <img class="result__icon__img" width="16" height="16" alt="" src="//external-content.duckduckgo.com/ip3/www.gitwatchman.com.ico" name="i15" />
+                            </a>
+                          </span>
+                          <a class="result__url" href="//duckduckgo.com/l/?uddg=https%3A%2F%2Fwww.gitwatchman.com%2Ftrack%2Fmicrosoft%2Ftypescript&amp;rut=4009f6018e36fb151513debcd0cf240b2482adcc9a124da4bdbc4ab727786123">
+                            www.gitwatchman.com/track/microsoft/typescript
+                          </a>
+                          
+                            <span>&nbsp; &nbsp; 2026-04-16T00:00:00.0000000</span>
+                          
+                        </div>
+                      </div>
+                    
+
+                    
+                      
+                        <a class="result__snippet" href="//duckduckgo.com/l/?uddg=https%3A%2F%2Fwww.gitwatchman.com%2Ftrack%2Fmicrosoft%2Ftypescript&amp;rut=4009f6018e36fb151513debcd0cf240b2482adcc9a124da4bdbc4ab727786123">The latest microsoft/<b>TypeScript</b> version is v7.0.2, released 8/20/2026. See <b>release</b> <b>notes</b> and get free email alerts for every new <b>TypeScript</b> <b>release</b>.</a>
+                      
+                    
+
+                    <div class="clear"></div>
+                  </div>
+                </div>
+              
+            
+              
+                <div class="result results_links results_links_deep web-result ">
+                  <div class="links_main links_deep result__body"> <!-- This is the visible part -->
+                    
+                      <h2 class="result__title">
+                        <a rel="nofollow" class="result__a" href="//duckduckgo.com/l/?uddg=https%3A%2F%2Fwww.npmjs.com%2Fpackage%2Ftypescript%3FactiveTab%3Dversions&amp;rut=ba596cff641928e9f0c86ae69cf81225e5d8f29ed5dda639f8faf8bee244bedd">typescript - npm</a>
+                      </h2>
+
+                    
+
+                    
+                      <div class="result__extras">
+                        <div class="result__extras__url">
+                          <span class="result__icon">
+                            <a rel="nofollow" href="//duckduckgo.com/l/?uddg=https%3A%2F%2Fwww.npmjs.com%2Fpackage%2Ftypescript%3FactiveTab%3Dversions&amp;rut=ba596cff641928e9f0c86ae69cf81225e5d8f29ed5dda639f8faf8bee244bedd">
+                              <img class="result__icon__img" width="16" height="16" alt="" src="//external-content.duckduckgo.com/ip3/www.npmjs.com.ico" name="i15" />
+                            </a>
+                          </span>
+                          <a class="result__url" href="//duckduckgo.com/l/?uddg=https%3A%2F%2Fwww.npmjs.com%2Fpackage%2Ftypescript%3FactiveTab%3Dversions&amp;rut=ba596cff641928e9f0c86ae69cf81225e5d8f29ed5dda639f8faf8bee244bedd">
+                            www.npmjs.com/package/typescript?activeTab=versions
+                          </a>
+                          
+                        </div>
+                      </div>
+                    
+
+                    
+                      
+                        <a class="result__snippet" href="//duckduckgo.com/l/?uddg=https%3A%2F%2Fwww.npmjs.com%2Fpackage%2Ftypescript%3FactiveTab%3Dversions&amp;rut=ba596cff641928e9f0c86ae69cf81225e5d8f29ed5dda639f8faf8bee244bedd"><b>TypeScript</b> is a language for application scale JavaScript development. Latest version: 7.0.2, last published: 2 months ago. Start using <b>typescript</b> in your project by running `npm i <b>typescript</b>`. There are 65838 other projects in the npm registry using <b>typescript</b>.</a>
+                      
+                    
+
+                    <div class="clear"></div>
+                  </div>
+                </div>
+              
+            
+
+            
+              
+              
+                <div class="nav-link">
+                  <form action="/html/" method="post">
+                    <input type="submit" class='btn btn--alt' value="Next" />
+                    <input type="hidden" name="q" value="typescript release notes" />
+                    <input type="hidden" name="s" value="10" />
+                    <input type="hidden" name="nextParams" value="" />
+                    <input type="hidden" name="v" value="l" />
+                    <input type="hidden" name="o" value="json" />
+                    <input type="hidden" name="dc" value="11" />
+                    <input type="hidden" name="api" value="d.js" />
+                    <input type="hidden" name="vqd" value="4-61500760282634868689232336283777020898" />
+
+                    
+                    
+                    
+                      <input name="kl" value="wt-wt" type="hidden" />
+                    
+                    
+                    
+                    
+                  </form>
+                </div>
+              
+            
+
+            <div class="feedback-btn">
+              <a rel="nofollow" href="//duckduckgo.com/feedback.html" target="_new">Feedback</a>
+            </div>
+            <div class="clear"></div>
+          </div>
+        </div>
+      </div> <!-- links wrapper //-->
+    
+  </div>
+
+  <div id="bottom_spacing2"></div>
+
+  
+    <img src="//duckduckgo.com/t/sl_h"/>
+  
+</body>
+</html>

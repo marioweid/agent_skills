@@ -17,6 +17,7 @@ ln -s "$PWD" ~/.pi/agent/extensions
 | `ask-user` | `ask_user` — 2–5 option multiple-choice popup, with a free-text escape hatch. Chimes when it opens. |
 | `project-memory` | Injects the `## Now` block of `.agent/PLAN.md` into every system prompt. `/plan`, `/plan new <title>`. |
 | `file-search` | `fd` and `rg` as model tools. |
+| `web` | `web_search` and `web_fetch` as model tools. DuckDuckGo's HTML endpoint plus an HTML-to-text reader, no dependencies and no API keys. |
 | `model-info` | Publishes model + token usage to the footer channel. |
 | `git-info` | Publishes branch / changed files / PR to the footer channel. `/lg`, `/pr`. |
 | `ui-customization` | Renders the header and footer from the two channels above. |

@@ -1,0 +1,11 @@
+{
+  "name": "pi-web",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Zero-dependency web search and page fetch tools for pi",
+  "scripts": {
+    "check": "tsc --noEmit -p .",
+    "test": "node --test --experimental-strip-types --no-warnings *.test.ts"
+  }
+}
