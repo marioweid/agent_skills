@@ -1,7 +1,6 @@
 ---
 name: gwa2-bot
 description: Use for AutoIt .au3 Guild Wars 1 bot work, especially under ~/Sources/BotsHub. Covers GWA2/BotsHub farm authoring, route/build/skill-rotation implementation, debugging, API usage, farm registration, and AutoIt house style.
-license: MIT
 metadata:
   author: mario.weidner@gmx.de
   version: "1.0.0"

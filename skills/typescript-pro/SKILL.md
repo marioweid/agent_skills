@@ -1,169 +1,47 @@
 ---
 name: typescript-pro
 description: Implements advanced TypeScript type systems, creates custom type guards, utility types, and branded types, and configures tRPC for end-to-end type safety. Use when building TypeScript applications requiring advanced generics, conditional or mapped types, discriminated unions, monorepo setup, or full-stack type safety with tRPC.
-license: MIT
-metadata:
-  domain: language
-  triggers: TypeScript, generics, type safety, conditional types, mapped types, tRPC, tsconfig, type guards, discriminated unions
-  role: specialist
-  scope: implementation
-  output-format: code
-  related-skills: fullstack-guardian, api-designer
 ---
 
 # TypeScript Pro
 
-## Core Workflow
+Toolchain: see your always-on global standards (already in context) (oxlint, oxfmt, vitest, `tsc --noEmit`, Node 22 ESM).
 
-1. **Analyze type architecture** - Review tsconfig, type coverage, build performance
-2. **Design type-first APIs** - Create branded types, generics, utility types
-3. **Implement with type safety** - Write type guards, discriminated unions, conditional types; run `tsc --noEmit` to catch type errors before proceeding
-4. **Optimize build** - Configure project references, incremental compilation, tree shaking; re-run `tsc --noEmit` to confirm zero errors after changes
-5. **Test & verify** - Write colocated `*.test.ts` files and run them with `vitest`; lint with `oxlint`, format with `oxfmt`, and confirm type coverage plus explicit return types on public APIs; iterate on steps 3–4 until all checks pass
+Tests live colocated with source as `*.test.ts`, not in a separate `tests/` tree.
 
-## Tooling
+## Supply chain — beyond `pnpm audit`
 
-Runtime: **Node 22 LTS**, ESM only (`"type": "module"` in `package.json`).
-
-| Purpose | Tool | Command |
-|---------|------|---------|
-| Lint | `oxlint` | `oxlint` (enable `typescript`, `import`, `unicorn` plugins) |
-| Format | `oxfmt` | `oxfmt` |
-| Test | `vitest` | `vitest` (colocated `*.test.ts` files) |
-| Types | `tsc` | `tsc --noEmit` |
-
-Use `oxlint`/`oxfmt` over ESLint/Prettier and `vitest` over Jest — they are faster and stricter.
-
-**Supply chain:** run `pnpm audit --audit-level=moderate` before installing; pin exact versions (no `^`/`~`); enforce a publish delay (`pnpm config set minimumReleaseAge 1440`); block install scripts (`pnpm config set ignore-scripts true`).
-
-## Reference Guide
-
-Load detailed guidance based on context:
-
-| Topic | Reference | Load When |
-|-------|-----------|-----------|
-| Advanced Types | `references/advanced-types.md` | Generics, conditional types, mapped types, template literals |
-| Type Guards | `references/type-guards.md` | Type narrowing, discriminated unions, assertion functions |
-| Utility Types | `references/utility-types.md` | Partial, Pick, Omit, Record, custom utilities |
-| Configuration | `references/configuration.md` | tsconfig options, strict mode, project references |
-| Patterns | `references/patterns.md` | Builder pattern, factory pattern, type-safe APIs |
-
-## Code Examples
-
-### Branded Types
-```typescript
-// Branded type for domain modeling
-type Brand<T, B extends string> = T & { readonly __brand: B };
-type UserId  = Brand<string, "UserId">;
-type OrderId = Brand<number, "OrderId">;
-
-const toUserId  = (id: string): UserId  => id as UserId;
-const toOrderId = (id: number): OrderId => id as OrderId;
-
-// Usage — prevents accidental id mix-ups at compile time
-function getOrder(userId: UserId, orderId: OrderId) { /* ... */ }
+```sh
+pnpm config set minimumReleaseAge 1440   # 24h publish delay before a version is installable
+pnpm config set ignore-scripts true      # blocks postinstall supply-chain attacks
 ```
 
-### Discriminated Unions & Type Guards
-```typescript
-type LoadingState = { status: "loading" };
-type SuccessState = { status: "success"; data: string[] };
-type ErrorState   = { status: "error";   error: Error };
-type RequestState = LoadingState | SuccessState | ErrorState;
+Neither is a pnpm default. Set both on every project.
 
-// Type predicate guard
-function isSuccess(state: RequestState): state is SuccessState {
-  return state.status === "success";
-}
+## oxlint plugins to enable
 
-// Exhaustive switch with discriminated union
-function renderState(state: RequestState): string {
-  switch (state.status) {
-    case "loading": return "Loading…";
-    case "success": return state.data.join(", ");
-    case "error":   return state.error.message;
-    default: {
-      const _exhaustive: never = state;
-      throw new Error(`Unhandled state: ${_exhaustive}`);
-    }
-  }
-}
-```
+`oxlint` ships most plugins off by default — enable `typescript`, `import`, and
+`unicorn` explicitly, or whole rule categories are silently skipped.
 
-### Custom Utility Types
-```typescript
-// Deep readonly — immutable nested objects
-type DeepReadonly<T> = {
-  readonly [K in keyof T]: T[K] extends object ? DeepReadonly<T[K]> : T[K];
-};
+## tsconfig flags beyond `strict: true`
 
-// Require exactly one of a set of keys
-type RequireExactlyOne<T, Keys extends keyof T = keyof T> =
-  Pick<T, Exclude<keyof T, Keys>> &
-  { [K in Keys]-?: Required<Pick<T, K>> & Partial<Record<Exclude<Keys, K>, never>> }[Keys];
-```
+`strict: true` alone misses real gaps. Add `noUncheckedIndexedAccess`,
+`exactOptionalPropertyTypes`, `noImplicitOverride`, and
+`noPropertyAccessFromIndexSignature` — each catches a bug class `strict` mode
+doesn't. Turning on `verbatimModuleSyntax` also means a plain
+`import Foo from './foo'` for a type-only import now errors — it must be
+`import type Foo from './foo'`.
 
-### Recommended tsconfig.json
-```json
-{
-  "compilerOptions": {
-    "target": "ES2022",
-    "module": "NodeNext",
-    "moduleResolution": "NodeNext",
-    "strict": true,
-    "noUncheckedIndexedAccess": true,
-    "exactOptionalPropertyTypes": true,
-    "noImplicitOverride": true,
-    "noPropertyAccessFromIndexSignature": true,
-    "verbatimModuleSyntax": true,
-    "isolatedModules": true,
-    "declaration": true,
-    "declarationMap": true,
-    "incremental": true,
-    "skipLibCheck": true
-  }
-}
-```
+## tRPC monorepos
 
-## Code Organization: Classes vs. Functions
+The client's type safety comes from importing the server's `AppRouter` *type*
+only (`import type { AppRouter } from '../server'`) — a value import pulls
+server code into the client bundle. Keep router and client in the same
+workspace so `tsc` project references pick up router changes without a build
+step.
 
-Let cohesion decide the unit of code — don't default to classes.
+## No enums
 
-- **State decides class vs. function.** A class is for cohesive state + behavior; a stateless transform is a plain function (or a module of functions). A helper used by only one class stays a free function if it touches no instance state — locality doesn't make it a method. A class with only static methods and no state is a module of functions.
-- **Constructor injection.** Pass collaborators into the constructor and type the dependency as an `interface`/`type` so tests can substitute a fake. No DI container for app code.
-- **One context object over many accessors.** When many call sites need the same app- or request-scoped singletons, bundle them into a single typed object built once and injected, instead of many loose module-level accessors reading global state.
-- **Thin adapters.** Route handlers / controllers resolve the service and delegate; orchestration lives in the service.
-
-## Constraints
-
-### MUST DO
-- Enable strict mode with all compiler flags
-- Use type-first API design
-- Implement branded types for domain modeling
-- Use `satisfies` operator for type validation
-- Create discriminated unions for state machines
-- Use `Annotated` pattern with type predicates
-- Generate declaration files for libraries
-- Optimize for type inference
-
-### MUST NOT DO
-- Use explicit `any` without justification
-- Skip type coverage for public APIs
-- Mix type-only and value imports
-- Disable strict null checks
-- Use `as` assertions without necessity
-- Ignore compiler performance warnings
-- Skip declaration file generation
-- Use enums (prefer const objects with `as const`)
-
-## Output Templates
-
-When implementing TypeScript features, provide:
-1. Type definitions (interfaces, types, generics)
-2. Implementation with type guards
-3. tsconfig configuration if needed
-4. Brief explanation of type design decisions
-
-## Knowledge Reference
-
-TypeScript 5.0+, generics, conditional types, mapped types, template literal types, discriminated unions, type guards, branded types, tRPC, project references, incremental compilation, declaration files, const assertions, satisfies operator
+Use `as const` objects instead of TS `enum` — enums don't tree-shake and
+generate non-obvious runtime JS (reverse mappings for numeric enums). Models
+still reach for `enum` by default; steer away from it.

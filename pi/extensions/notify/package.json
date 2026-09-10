@@ -1,0 +1,9 @@
+{
+  "name": "notify",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "check": "tsc --noEmit -p .",
+    "test": "node --test --experimental-strip-types --no-warnings *.test.ts"
+  }
+}

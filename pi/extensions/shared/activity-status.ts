@@ -1,0 +1,29 @@
+import type { ExtensionContext } from "@earendil-works/pi-coding-agent";
+
+type Theme = ExtensionContext["ui"]["theme"];
+
+interface ActivityCounts {
+  running: number;
+  done: number;
+  failed: number;
+}
+
+const SQUARE = "■";
+
+export function formatActivityStatus(theme: Theme, counts: ActivityCounts) {
+  const parts: string[] = [];
+  if (counts.running > 0) {
+    parts.push(theme.fg("warning", `${SQUARE} ${counts.running} running`));
+  }
+  if (counts.done > 0) {
+    parts.push(theme.fg("success", `${SQUARE} ${counts.done} done`));
+  }
+  if (counts.failed > 0) {
+    parts.push(theme.fg("error", `${SQUARE} ${counts.failed} failed`));
+  }
+  // No "/sessions to view" hint: the tree is the startup view and left-arrow on
+  // an empty prompt reopens it, so the command is plumbing rather than
+  // something anyone types. The counts are the whole point of this line.
+
+  return `${theme.fg("muted", "subagents:")} ${parts.join(theme.fg("dim", " · "))}`;
+}

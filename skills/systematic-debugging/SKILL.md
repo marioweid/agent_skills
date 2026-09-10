@@ -186,7 +186,7 @@ You MUST complete each phase before proceeding to the next.
    - Test passes now?
    - No other tests broken?
    - Issue actually resolved?
-   - Use the `verification-before-completion` skill before claiming success
+   - Run the check yourself and paste real output before claiming success — no "should pass now"
 
 4. **If Fix Doesn't Work**
    - STOP

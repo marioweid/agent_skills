@@ -1,9 +1,9 @@
 # Direct Codex Pi snapshot
 
 This snapshot retires the `localhost:8787`/Headroom proxy. It pins Pi CLI
-`@earendil-works/pi-coding-agent@0.85.1`, ponytail 4.9.0, and pi-subagents
-0.66.0. The lock intentionally retains `@earendil-works/pi-server@0.85.0`:
-it is pi-subagents' resolved dependency, not a CLI version mismatch to repair.
+`@earendil-works/pi-coding-agent@0.85.1` and ponytail 4.9.0. Subagents come
+from the vendored `extensions/subagents` here, not from the `pi-subagents`
+package that used to be installed alongside it.
 
 `settings.json` is a non-secret preference snapshot; it has no `models.json`.
 Pi 0.85.1's built-in OpenAI Codex catalog contains the selected Luna, Sol,
@@ -100,7 +100,19 @@ link_if_absent() {
 }
 link_if_absent "$REPO/skills" "$HOME/.pi/agent/skills/agent-skills"
 link_if_absent "$REPO/standards/AGENTS.md" "$HOME/.pi/agent/AGENTS.md"
+mkdir -p "$HOME/.pi/agent/agents"
+for role in "$REPO"/pi/agents/*.md; do
+  link_if_absent "$role" "$HOME/.pi/agent/agents/$(basename "$role")"
+done
+link_if_absent "$REPO/pi/prompts" "$HOME/.pi/agent/prompts"
 ```
+
+`pi/agents/*.md` are the five build-loop roles and `pi/prompts/build.md` is the
+command that runs them. The roles pin `openai-codex` model ids; `build.md` pins
+no provider. `~/.pi/agent/agents/` is linked per file rather than as a whole
+directory so a machine on another provider can replace individual entries with
+local copies instead of editing the repo — see "Models, and machines that use a
+different provider" in the root README.
 
 ## NixOS / Home Manager
 
@@ -150,5 +162,4 @@ macOS runtime, native optional dependencies, and authenticated provider
 behavior remain unverified until tested on macOS.
 
 Official references reviewed: installed Pi 0.85.1 `README.md`,
-`docs/{quickstart,settings,packages,providers,models,skills,environment-variables}.md`;
-pi-subagents 0.66.0 `README.md` and `docs/models.md`.
+`docs/{quickstart,settings,packages,providers,models,skills,environment-variables}.md`.
