@@ -20,6 +20,7 @@ import {
 import { Cause, Effect, Exit } from "effect";
 import { alertUser } from "../notify/index.ts";
 import { Type, type Static } from "typebox";
+import { sanitizeTerminalText } from "../shared/terminal-text.ts";
 import {
   ASK_USER_PARAMETER_DESCRIPTIONS,
   ASK_USER_PROMPT_GUIDELINES,
@@ -85,6 +86,18 @@ export default function askUser(pi: ExtensionAPI) {
     parameters: AskUserParams,
 
     async execute(_toolCallId, params, signal, _onUpdate, ctx) {
+      // The question, labels and descriptions are model-authored and are drawn
+      // straight into the popup, where a bare OSC or CSI sequence would escape
+      // the overlay and reach the terminal (and corrupt the width accounting).
+      // Sanitize once here; nothing below reads the raw strings.
+      const question = sanitizeTerminalText(params.question);
+      const options: DisplayOption[] = params.options.map((o) => ({
+        label: sanitizeTerminalText(o.label),
+        ...(o.description
+          ? { description: sanitizeTerminalText(o.description) }
+          : {}),
+      }));
+
       const reply = (
         text: string,
         answer: string | null = null,
@@ -92,8 +105,8 @@ export default function askUser(pi: ExtensionAPI) {
       ) => ({
         content: [{ type: "text" as const, text }],
         details: {
-          question: params.question,
-          options: params.options.map((o) => o.label),
+          question,
+          options: options.map((o) => o.label),
           answer,
           wasCustom,
           cancelled: answer === null,
@@ -118,7 +131,7 @@ export default function askUser(pi: ExtensionAPI) {
       }
 
       const allOptions: DisplayOption[] = [
-        ...params.options,
+        ...options,
         { label: "Write my own answer…", isOther: true },
       ];
 
@@ -248,7 +261,7 @@ export default function askUser(pi: ExtensionAPI) {
               ),
             );
             for (const line of wrapTextWithAnsi(
-              params.question,
+              question,
               Math.max(10, width - 2),
             )) {
               add(` ${theme.fg("text", theme.bold(line))}`);
@@ -356,13 +369,17 @@ export default function askUser(pi: ExtensionAPI) {
       let text = theme.fg("toolTitle", theme.bold("ask_user "));
       text += theme.fg(
         "muted",
-        typeof args.question === "string" ? args.question : "",
+        typeof args.question === "string"
+          ? sanitizeTerminalText(args.question)
+          : "",
       );
       const opts = Array.isArray(args.options)
         ? (args.options as DisplayOption[])
         : [];
       if (opts.length > 0) {
-        const numbered = opts.map((o, i) => `${i + 1}. ${o.label}`);
+        const numbered = opts.map(
+          (o, i) => `${i + 1}. ${sanitizeTerminalText(o.label)}`,
+        );
         text += `\n${theme.fg("dim", `  ${numbered.join("  ")}`)}`;
       }
       return new Text(text, 0, 0);
