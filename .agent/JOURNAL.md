@@ -307,6 +307,12 @@ server entry being removed.
 
 ## 2026-09-11T21:05Z — Built the `web` extension; pi no longer needs another harness
 
+**Supersedes the 20:15Z entry above.** That one rejected `pi-web-access` on the grounds that
+the `claude` subagent harness already provides `WebSearch`/`WebFetch`, so delegating research
+there costs nothing. That reasoning is dead: the owner is removing Claude Code, and
+`standards/AGENTS.md` now says never to delegate a lookup to another harness. The rejection
+stands, but for the reason below — not the one recorded at 20:15Z.
+
 [DECISION] Rejected `pi-web-access` (7.3 MB, 9 loading dependencies, 25 search providers,
 opt-in browser-cookie access to Gemini Web, configurable SSRF-preflight bypass) and wrote
 the capability instead. Tested before deciding rather than assuming:

@@ -7,12 +7,16 @@ repo-scoped load set (e.g. `~/.pi/agent/repos.json`) so they only activate when 
 their respective directories. Design question: should Codex/Claude Code support this too,
 or is it pi-only?
 
-- [ ] Proof-of-concept: repo-scoped loader for the three project skills
+- [ ] Proof-of-concept: repo-scoped loader for the two project skills
 - [ ] Wire a post-edit quality gate (lint/format on changed files via an extension event)
 - [ ] Collect triage misfires (build work done inline, or agents spawned for trivia) and sharpen the lane table from the real examples
-- [ ] A/B the thinned skills on a real task — confirm output quality held after the 9.9k-line cut
+- [ ] A/B the thinned skills on a real task — confirm output quality held after the 11.5k-line cut
 
 ## Next
+
+- Revoke the leaked Context7 API key at context7.com. It was printed into a session
+  transcript on 2026-09-11 and `~/.pi/agent/sessions/` is plaintext, so removing the server
+  entry from `~/.claude.json` did not invalidate it.
 
 - **Go pi-only: drop Claude Code entirely.** Remove the `claude` subagent backend
   (`pi/extensions/subagents/src/backends/claude.ts`, `BACKEND_NAMES` in `src/domain.ts:13`,
