@@ -114,9 +114,16 @@ export default function sessionTree(pi: ExtensionAPI) {
    * Publishing is best-effort: an unwritable state directory must never take
    * down the session, so the first failure gives up for good and the command
    * carries on with whatever other windows have published.
+   *
+   * Only a TUI window publishes. `subagents` creates its pi children with
+   * `createAgentSession()` **in this same process** and binds extensions on
+   * them, so a headless child loads this extension too — and the snapshot is
+   * keyed by pid, so it would overwrite the parent window's entry with a new
+   * `owner` and then unlink it on child shutdown. The parent would lose its
+   * own row's window, which `removeActionFor` reads as "safe to delete".
    */
   const publish = () => {
-    if (storeBroken) return;
+    if (storeBroken || context?.mode !== "tui") return;
     try {
       store ??= new WindowStore(path.join(getAgentDir(), "session-tree"));
       store.publish(context?.cwd ?? process.cwd(), {
