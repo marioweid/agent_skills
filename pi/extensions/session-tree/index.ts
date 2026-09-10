@@ -157,6 +157,7 @@ export default function sessionTree(pi: ExtensionAPI) {
           ...(last ? { lastMessage: last } : {}),
           firstMessage: info.firstMessage,
           modified: info.modified.getTime(),
+          created: info.created.getTime(),
           messageCount: info.messageCount,
         };
       });

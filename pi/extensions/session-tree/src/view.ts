@@ -11,6 +11,8 @@ import { getMarkdownTheme } from "@earendil-works/pi-coding-agent";
 import type { Component, Focusable, TUI } from "@earendil-works/pi-tui";
 import { Markdown, matchesKey, truncateToWidth, visibleWidth } from "@earendil-works/pi-tui";
 import { homedir } from "node:os";
+import type { JournalEntry } from "./overview.ts";
+import { activityCounts, activityStrip, readJournal } from "./overview.ts";
 import type { LiveWindow, WindowStore } from "./store.ts";
 import { deleteSessionFiles } from "./store.ts";
 import type { Turn } from "./transcript.ts";
@@ -216,25 +218,107 @@ export function conversationLines(
   return out;
 }
 
-/** The detail pane body for a selection, as plain lines. */
+const ACTIVITY_DAYS = 56;
+const LABEL_WIDTH = 11;
+const GUTTER = " ".repeat(LABEL_WIDTH);
+
+/** Left-pads a detail-pane label to the shared 11-column gutter. */
+function label(text: string): string {
+  return text.padEnd(LABEL_WIDTH);
+}
+
+/** `YYYY-MM-DD` in local time, for the directory pane's active-range line. */
+function localDate(ts: number): string {
+  const d = new Date(ts);
+  const month = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${d.getFullYear()}-${month}-${day}`;
+}
+
+/** The strip's day axis: how far back it starts, and that it ends today. */
+function activityAxis(days: number): string {
+  const left = `${days}d ago`;
+  const right = "today";
+  const gap = Math.max(1, days - left.length - right.length);
+  return `${left}${" ".repeat(gap)}${right}`;
+}
+
+/** How many strip columns fit next to the label gutter, clamped to sane bounds. */
+function stripWidthFor(paneWidth: number): number {
+  return Math.max(0, Math.min(ACTIVITY_DAYS, paneWidth - LABEL_WIDTH));
+}
+
+/**
+ * Everything a directory row shows: totals over its sessions, an activity
+ * strip built from data already in memory (D9, no I/O), and the newest
+ * entries from `.agent/JOURNAL.md` when the caller found one (D12/D14).
+ * `journal` defaults to empty so this stays callable, and testable, without
+ * touching disk. `width` is the detail pane's own width (D10: a narrower
+ * pane trims the strip from the left, keeping today) — the strip and its
+ * axis are both derived from it so they never drift apart.
+ */
+function directoryOverview(
+  node: TreeNode,
+  now: number,
+  journal: readonly JournalEntry[],
+  width: number,
+): string[] {
+  const open = node.children.filter((child) => child.window).length;
+  const rows = node.children
+    .map((child) => child.session)
+    .filter((row): row is SessionRow => Boolean(row));
+  const lines = [node.cwd, "", `${label("sessions")}${node.children.length} (${open} open now)`];
+
+  if (rows.length > 0) {
+    const totalMessages = rows.reduce((sum, row) => sum + row.messageCount, 0);
+    const earliest = Math.min(...rows.map((row) => row.created));
+    const latest = Math.max(...rows.map((row) => row.modified));
+    lines.push(
+      `${label("messages")}${totalMessages}`,
+      `${label("active")}${localDate(earliest)} → ${localDate(latest)}`,
+      `${label("last used")}${formatAge(latest, now)} ago`,
+    );
+    const stripWidth = stripWidthFor(width);
+    // Too narrow for even one column: skip the block rather than render an
+    // empty strip under an axis that no longer means anything.
+    if (stripWidth > 0) {
+      lines.push(
+        "",
+        `${label("activity")}one column per day, last ${Math.round(ACTIVITY_DAYS / 7)} weeks`,
+        `${GUTTER}${activityStrip(activityCounts(rows, now, ACTIVITY_DAYS), stripWidth)}`,
+        `${GUTTER}${activityAxis(stripWidth)}`,
+      );
+    }
+  }
+
+  if (journal.length > 0) {
+    // Journal file order is oldest-first (append-only); the last 3 entries
+    // reversed gives newest-first, matching D12.
+    const recent = journal.slice(-3).reverse();
+    lines.push("", `${label("journal")}${recent.length} most recent of ${journal.length}`);
+    for (const entry of recent) lines.push(`${GUTTER}${entry.date}  ${entry.brief}`);
+  }
+
+  lines.push("", "→ to list them.", "n  to start a new session here.");
+  return lines;
+}
+
+/**
+ * The detail pane body for a selection, as plain lines. `width` is the pane's
+ * own width, only used for the directory branch's activity strip; it
+ * defaults to a value wide enough to show the strip untrimmed, so callers
+ * that do not care about layout (most tests) can omit it.
+ */
 export function detailLines(
   node: TreeNode | undefined,
   now: number,
   isOwn: (window: LiveWindow) => boolean,
+  journal: readonly JournalEntry[] = [],
+  width: number = ACTIVITY_DAYS + LABEL_WIDTH,
 ): string[] {
   if (!node) return ["Nothing selected."];
 
-  if (node.kind === "directory") {
-    const open = node.children.filter((child) => child.window).length;
-    return [
-      node.cwd,
-      "",
-      `sessions  ${node.children.length} (${open} open now)`,
-      "",
-      "→ to list them.",
-      "n  to start a new session here.",
-    ];
-  }
+  if (node.kind === "directory") return directoryOverview(node, now, journal, width);
 
   const window = node.window;
   const session = node.session;
@@ -705,10 +789,13 @@ class SessionTreeView implements Component, Focusable {
     width: number,
     now: number,
   ): ConversationLine[] {
+    const journal = node?.kind === "directory" ? readJournal(node.cwd) : [];
     const head: ConversationLine[] = detailLines(
       node,
       now,
       (window) => this.store.isOwn(window),
+      journal,
+      width,
     ).map((text) => ({ role: "none" as const, text }));
     const path = node?.kind === "session" ? node.session?.path : undefined;
     if (!path) return head;

@@ -104,3 +104,34 @@ theme is active. Prompts stay literal, since markdown would eat the leading
 `#` or `-` of a prompt that starts with one. Transcripts are read on demand
 for the row under the cursor and cached by mtime, so a session being written to
 right now still refreshes.
+
+## Directory rows
+
+Selecting a directory shows a real overview instead of a hint: totals over
+its sessions, an activity strip, and — when the directory has one — the
+newest entries from its `.agent/JOURNAL.md`.
+
+```
+sessions   17 (2 open now)
+messages   1284
+active     2026-07-19 → 2026-09-11
+last used  3h 12m ago
+
+activity   one column per day, last 8 weeks
+           ·····▒░··▓·······░······█▓·░········▒▒█··░······▓██▓··▓▓
+           56d ago                                            today
+
+journal    3 most recent of 14
+           2026-09-10T05:40Z  What chafed running the build loop
+           2026-09-10T05:20Z  Skills unduplication: one fact, one
+           2026-09-09T20:45Z  Rebuilt the harness around a delega
+```
+
+The activity strip is one glyph per day (`·░▒▓█` for 0 / 1-9 / 10-49 / 50-199
+/ 200+ messages that day), built from the session rows already in memory —
+no extra file reads on the render tick. The journal block reads
+`.agent/JOURNAL.md` straight off disk (no dependency on `project-memory`
+being installed), taking the last three `## ` headings and showing them
+newest first; a directory with no `.agent/JOURNAL.md` simply has no journal
+block.
+

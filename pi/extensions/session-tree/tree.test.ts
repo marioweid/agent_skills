@@ -40,6 +40,7 @@ function session(over: Partial<SessionRow> = {}): SessionRow {
     cwd: "/repo/a",
     firstMessage: "fix the parser",
     modified: 1000,
+    created: 500,
     messageCount: 4,
     ...over,
   };
@@ -305,7 +306,7 @@ test("sidebar rows show the tree glyph, open marker, and open count", () => {
 test("the detail pane says what enter will do", () => {
   const roots = navRoots();
   const now = 100_000;
-  assert.match(detailLines(roots[0], now, never).join("\n"), /sessions {2}2 \(1 open now\)/);
+  assert.match(detailLines(roots[0], now, never).join("\n"), /sessions {3}2 \(1 open now\)/);
   const busy = detailLines(roots[0]!.children[0], now, never).join("\n");
   assert.match(busy, /Open in pi 1/);
   const free = detailLines(roots[0]!.children[1], now, never).join("\n");

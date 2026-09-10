@@ -20,6 +20,7 @@ export interface SessionRow {
   /** Last thing the user asked, which is what the session is about now. */
   readonly lastMessage?: string;
   readonly modified: number;
+  readonly created: number;
   readonly messageCount: number;
 }
 
