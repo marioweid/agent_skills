@@ -10,11 +10,7 @@ interface ActivityCounts {
 
 const SQUARE = "■";
 
-export function formatActivityStatus(
-  theme: Theme,
-  label: "subagents" | "workflows",
-  counts: ActivityCounts,
-) {
+export function formatActivityStatus(theme: Theme, counts: ActivityCounts) {
   const parts: string[] = [];
   if (counts.running > 0) {
     parts.push(theme.fg("warning", `${SQUARE} ${counts.running} running`));
@@ -25,7 +21,7 @@ export function formatActivityStatus(
   if (counts.failed > 0) {
     parts.push(theme.fg("error", `${SQUARE} ${counts.failed} failed`));
   }
-  parts.push(theme.fg("accent", `/${label}`) + theme.fg("dim", " to view"));
+  parts.push(theme.fg("accent", "/sessions") + theme.fg("dim", " to view"));
 
-  return `${theme.fg("muted", `${label}:`)} ${parts.join(theme.fg("dim", " · "))}`;
+  return `${theme.fg("muted", "subagents:")} ${parts.join(theme.fg("dim", " · "))}`;
 }

@@ -111,7 +111,20 @@ export default function projectMemory(pi: ExtensionAPI) {
       return;
     }
     fs.mkdirSync(dir, { recursive: true });
-    for (const entry of files) fs.writeFileSync(entry.file, entry.content, { flag: "wx" });
+    const written: string[] = [];
+    try {
+      for (const entry of files) {
+        fs.writeFileSync(entry.file, entry.content, { flag: "wx" });
+        written.push(entry.file);
+      }
+    } catch (error) {
+      // Half-created memory is worse than none: the "refusing to overwrite"
+      // guard would then block every retry of this command. Roll back to the
+      // state the user started in and say what happened.
+      for (const file of written) fs.rmSync(file, { force: true });
+      show(`Could not create project memory: ${String(error)}`);
+      return;
+    }
     cachedKey = undefined;
     show(
       [

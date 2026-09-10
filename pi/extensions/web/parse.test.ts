@@ -63,6 +63,9 @@ test("unescapeHtml decodes named, decimal, and hex entities", () => {
   assert.equal(unescapeHtml("it&#x27;s"), "it's");
   assert.equal(unescapeHtml("&#39;quoted&#39;"), "'quoted'");
   assert.equal(unescapeHtml("no entities here"), "no entities here");
+  // An out-of-range code point must be left alone, not crash the fetch.
+  assert.equal(unescapeHtml("a &#x110000; b"), "a &#x110000; b");
+  assert.equal(unescapeHtml("a &#99999999999; b"), "a &#99999999999; b");
 });
 
 test("stripTags removes tags but keeps their text content", () => {

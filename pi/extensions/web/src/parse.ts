@@ -31,7 +31,10 @@ export function unescapeHtml(text: string): string {
     if (entity[0] !== "#") return NAMED_ENTITIES[entity] ?? match;
     const isHex = entity[1] === "x" || entity[1] === "X";
     const codePoint = isHex ? parseInt(entity.slice(2), 16) : parseInt(entity.slice(1), 10);
-    return Number.isNaN(codePoint) ? match : String.fromCodePoint(codePoint);
+    // Out of Unicode range makes fromCodePoint throw, which would take down
+    // web_fetch on any page containing `&#x110000;`. Leave it as written.
+    if (Number.isNaN(codePoint) || codePoint > 0x10ffff) return match;
+    return String.fromCodePoint(codePoint);
   });
 }
 

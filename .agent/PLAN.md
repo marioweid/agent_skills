@@ -14,9 +14,6 @@ or is it pi-only?
 
 ## Next
 
-- Revoke the leaked Context7 API key at context7.com. It was printed into a session
-  transcript on 2026-09-10 and `~/.pi/agent/sessions/` is plaintext, so removing the server
-  entry from `~/.claude.json` did not invalidate it.
 - `pi update --all` will undo the pi-review cleanup. `pi install git:` runs `npm install`,
   and npm auto-installs `peerDependencies`, so it resolves the core pi packages to an old
   version and drags in 184 MB with a 9-vulnerability tree (1 critical) for a 54 KB extension.

@@ -69,6 +69,8 @@ test("every malformed shape is reported with a reason", () => {
     "a-no-frontmatter.md": "just text",
     "b-unterminated.md": "---\nname: b\nbody with no closing delimiter\n",
     "c-no-body.md": "---\nname: c\n---\n",
+    // No trailing newline: the closing delimiter is the last byte.
+    "c2-no-body-no-newline.md": "---\nname: c2\n---",
     "d-bad-thinking.md": "---\nname: d\nthinking: turbo\n---\nbody\n",
     "e-ok.md": "---\nname: e\n---\nbody\n",
   });
@@ -78,12 +80,14 @@ test("every malformed shape is reported with a reason", () => {
     "a-no-frontmatter.md",
     "b-unterminated.md",
     "c-no-body.md",
+    "c2-no-body-no-newline.md",
     "d-bad-thinking.md",
   ]);
   assert.match(rejected[0]!.reason, /opening ---/);
   assert.match(rejected[1]!.reason, /closing ---/);
   assert.match(rejected[2]!.reason, /no prompt body/);
-  assert.match(rejected[3]!.reason, /thinking: turbo/);
+  assert.match(rejected[3]!.reason, /no prompt body/);
+  assert.match(rejected[4]!.reason, /thinking: turbo/);
 });
 
 test("a duplicate role name is reported, not silently shadowed", () => {

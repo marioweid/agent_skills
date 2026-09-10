@@ -8,8 +8,12 @@
 
 import assert from "node:assert/strict";
 import test from "node:test";
-import { Effect, Layer, ManagedRuntime } from "effect";
-import { BackendRegistry, type SubagentBackend } from "./src/backend.ts";
+import { Effect, Layer, ManagedRuntime, Stream } from "effect";
+import {
+  BackendRegistry,
+  type SubagentBackend,
+  type SubagentSession,
+} from "./src/backend.ts";
 import { piBackend } from "./src/backends/pi.ts";
 import { makeStubBackend } from "./src/backends/stub.ts";
 import type { BackendName, ParentContext, SpawnTask } from "./src/domain.ts";
@@ -213,4 +217,55 @@ test("send steers an idle subagent into another turn", async () => {
     assert.equal(afterSecond?.status, "done");
     assert.match(afterSecond?.finalText ?? "", /Second turn/);
   });
+});
+
+test("interrupting a spawn closes the session scope instead of orphaning it", async () => {
+  let released = false;
+  // A backend that hands back a session whose metadata never arrives, so the
+  // interrupt lands *after* backend.spawn succeeded — the window in which the
+  // scope used to be left open and the child process orphaned.
+  const hangingBackend: SubagentBackend = {
+    name: "claude",
+    available: Effect.succeed(true),
+    spawn: () =>
+      Effect.gen(function* () {
+        yield* Effect.addFinalizer(() =>
+          Effect.sync(() => {
+            released = true;
+          }),
+        );
+        return {
+          meta: Effect.never,
+          events: Stream.empty,
+          send: () => Effect.void,
+          interrupt: Effect.void,
+        } satisfies SubagentSession;
+      }),
+  };
+
+  const runtime = ManagedRuntime.make(
+    SubagentManagerLive.pipe(
+      Layer.provide(
+        Layer.sync(
+          BackendRegistry,
+          () => new Map<BackendName, SubagentBackend>([["claude", hangingBackend]]),
+        ),
+      ),
+    ),
+  );
+  try {
+    const manager = await runtime.runPromise(SubagentManager);
+    const controller = new AbortController();
+    const spawn = runTool(runtime, manager.spawn("claude", task("hang")), {
+      signal: controller.signal,
+    });
+    await new Promise((resolve) => setTimeout(resolve, 20));
+    controller.abort();
+    await assert.rejects(spawn);
+
+    assert.equal(released, true, "session scope must be closed on interrupt");
+    assert.deepEqual(manager.view.list(), []);
+  } finally {
+    await runtime.dispose();
+  }
 });

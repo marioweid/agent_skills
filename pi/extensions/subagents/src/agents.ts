@@ -51,7 +51,11 @@ function splitFrontmatter(text: string) {
   if (end === -1) {
     throw new RoleError("missing closing --- frontmatter delimiter");
   }
-  const body = normalized.slice(normalized.indexOf("\n", end + 1) + 1);
+  // A file ending at the closing `---` has no body. Without this guard
+  // `indexOf` returns -1 and `slice(0)` hands back the whole file, so the
+  // frontmatter itself becomes the role's system prompt.
+  const bodyStart = normalized.indexOf("\n", end + 1);
+  const body = bodyStart === -1 ? "" : normalized.slice(bodyStart + 1);
   return { frontmatter: normalized.slice(4, end + 1), body: body.trim() };
 }
 

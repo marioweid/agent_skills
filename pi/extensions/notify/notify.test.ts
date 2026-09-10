@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { TurnTracker, formatDuration } from "./index.ts";
+import { alertUser, TurnTracker, formatDuration } from "./index.ts";
 
 const MIN = 20_000;
 
@@ -62,4 +62,21 @@ test("formatDuration reads naturally at each scale", () => {
   assert.equal(formatDuration(5_000), "5s");
   assert.equal(formatDuration(90_000), "1m 30s");
   assert.equal(formatDuration(3_930_000), "1h 5m");
+});
+
+test("model-authored notification text cannot break out of the escape sequence", () => {
+  const written: string[] = [];
+  const original = process.stdout.write.bind(process.stdout);
+  process.stdout.write = ((chunk: string) => {
+    written.push(String(chunk));
+    return true;
+  }) as typeof process.stdout.write;
+  try {
+    alertUser("done\u0007\u001b]0;pwned\u0007");
+  } finally {
+    process.stdout.write = original;
+  }
+  const payload = written.join("");
+  assert.ok(!payload.includes("pwned"));
+  assert.equal(payload.split("\u0007").length - 1, 1);
 });

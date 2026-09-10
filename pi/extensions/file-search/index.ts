@@ -16,7 +16,7 @@ import type {
   ExtensionContext,
 } from "@earendil-works/pi-coding-agent";
 import { Text } from "@earendil-works/pi-tui";
-import { Cause, Data, Effect, Exit } from "effect";
+import { Cause, Data, Duration, Effect, Exit } from "effect";
 import { Type } from "typebox";
 import { StringEnum } from "@earendil-works/pi-ai";
 import {
@@ -51,18 +51,26 @@ import {
 } from "./src/prompt.ts";
 import { discardCapturedOutput, executeSearchProcess } from "./src/process.ts";
 
+/**
+ * Memoises a resolved binary, but only on success. `Effect.cached` stores the
+ * `Exit` unconditionally, so one failed download would disable the tool for the
+ * life of the pi process; invalidating on error makes the next search retry.
+ */
+function cacheSuccess<A, E, R>(self: Effect.Effect<A, E, R>) {
+  const [cached, invalidate] = Effect.runSync(
+    Effect.cachedInvalidateWithTTL(self, Duration.infinity),
+  );
+  return cached.pipe(Effect.tapError(() => invalidate));
+}
+
 export function makeBinaryInitializers(
   binDir: string,
   target: PlatformTarget,
   env: BinaryEnv,
 ) {
   return {
-    fd: Effect.runSync(
-      Effect.cached(resolveBinary(TOOL_SPECS.fd, binDir, target, env)),
-    ),
-    rg: Effect.runSync(
-      Effect.cached(resolveBinary(TOOL_SPECS.rg, binDir, target, env)),
-    ),
+    fd: cacheSuccess(resolveBinary(TOOL_SPECS.fd, binDir, target, env)),
+    rg: cacheSuccess(resolveBinary(TOOL_SPECS.rg, binDir, target, env)),
   };
 }
 
@@ -85,6 +93,8 @@ interface SearchOutcome {
   readonly output: CapturedOutput;
   readonly noMatches: boolean;
   readonly binarySource: BinarySource;
+  /** Non-fatal stderr from a partially failed search, prefixed to the result. */
+  readonly warning?: string;
 }
 
 export interface FdToolDetails {
@@ -106,6 +116,28 @@ const EXEC_TIMEOUT_MS = 60_000;
 function causeMessage<E>(cause: Cause.Cause<E>) {
   const [first] = Cause.prettyErrors(cause);
   return first?.message ?? Cause.pretty(cause);
+}
+
+/**
+ * Classifies a search process exit.
+ *
+ * rg exits 1 for "no matches" and 2 for "an error occurred" — but 2 also covers
+ * one unreadable directory in an otherwise good search, and the matches it did
+ * find are real. Discarding them loses the answer, so an error is only fatal
+ * when nothing came back; otherwise the results ship with a warning.
+ */
+export function classifySearchExit(
+  tool: "fd" | "rg",
+  code: number,
+  lineCount: number,
+) {
+  const errored = code !== 0 && !(tool === "rg" && code === 1);
+  return { errored, fatal: errored && lineCount === 0 };
+}
+
+/** Surfaces a partial-failure warning above the results instead of hiding it. */
+function withWarning(text: string, outcome: SearchOutcome) {
+  return outcome.warning ? `${outcome.warning}\n\n${text}` : text;
 }
 
 function unwrapToolExit<A, E>(exit: Exit.Exit<A, E>, tool: "fd" | "rg") {
@@ -172,23 +204,23 @@ export default function fileSearchTools(pi: ExtensionAPI) {
         tempPrefix: `pi-${tool}-`,
       });
 
-      // ripgrep exits 1 for "no matches"; fd exits 0 even with no results.
-      if (tool === "rg" && result.code === 1 && result.output.lineCount === 0) {
-        return {
-          output: result.output,
-          noMatches: true,
-          binarySource: binary.source,
-        } satisfies SearchOutcome;
-      }
-      if (result.code !== 0) {
+      const { errored, fatal } = classifySearchExit(
+        tool,
+        result.code,
+        result.output.lineCount,
+      );
+      const stderr = result.stderr.trim();
+      if (fatal) {
         yield* discardCapturedOutput(result.output);
-        const detail = result.stderr.trim() || `exit code ${result.code}`;
-        return yield* new SearchError({ message: `${tool} failed: ${detail}` });
+        return yield* new SearchError({
+          message: `${tool} failed: ${stderr || `exit code ${result.code}`}`,
+        });
       }
       return {
         output: result.output,
         noMatches: result.output.lineCount === 0,
         binarySource: binary.source,
+        ...(errored ? { warning: `${tool} reported errors:\n${stderr}` } : {}),
       } satisfies SearchOutcome;
     }).pipe(
       Effect.timeout(EXEC_TIMEOUT_MS),
@@ -232,7 +264,7 @@ export default function fileSearchTools(pi: ExtensionAPI) {
 
           const formatted = formatCapturedOutput(outcome.output);
           return {
-            content: [{ type: "text", text: formatted.text }],
+            content: [{ type: "text", text: withWarning(formatted.text, outcome) }],
             details: {
               binarySource: outcome.binarySource,
               matchCount: formatted.lineCount,
@@ -303,7 +335,7 @@ export default function fileSearchTools(pi: ExtensionAPI) {
 
           const formatted = formatCapturedOutput(outcome.output);
           return {
-            content: [{ type: "text", text: formatted.text }],
+            content: [{ type: "text", text: withWarning(formatted.text, outcome) }],
             details: {
               binarySource: outcome.binarySource,
               outputLines: formatted.lineCount,

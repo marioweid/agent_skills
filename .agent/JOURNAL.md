@@ -276,7 +276,8 @@ URL fetch is `curl`, and YouTube/video/PDF understanding plus 24 of its 25 provi
 things this repo will never touch. Also carries opt-in browser-cookie access to Gemini Web
 and a configurable SSRF-preflight bypass — off by default, but code that would be loaded.
 
-[DISCOVERY] `standards/AGENTS.md` was instructing every agent to use Context7 MCP and Exa.
+[DISCOVERY] `standards/AGENTS.md` was instructing every agent to use a documentation-lookup
+MCP server and a hosted search API.
 **pi has no MCP support at all** — `docs/usage.md` states it "intentionally does not
 include built-in MCP, sub-agents, permission popups, plan mode, to-dos, or background
 bash." Confirmed from a clean pi session in `/tmp`, whose entire toolset is:
@@ -285,7 +286,7 @@ bash." Confirmed from a clean pi session in `/tmp`, whose entire toolset is:
 
 `fd` and `rg` are our own file-search extension — local search, not web. So that paragraph
 had been dead in every pi session since it was written, and only ever worked in Claude
-Code, where `context7` was configured. Meanwhile the standing instruction to "look up the
+Code, where such a server was configured. Meanwhile the standing instruction to "look up the
 current stable version, never recall it from memory" had no working method behind it.
 
 Rewrote the section as "Looking things up": installed copy first (`node_modules`, the
@@ -294,16 +295,16 @@ Cellar path, the package's own `docs/` and `.d.ts`), then the tool's own `--help
 delegate to a `claude` subagent when the open web is genuinely required. That is exactly
 the sequence used to evaluate all three packages today; the standard now matches practice.
 
-Dropped Context7 on the user's call — unused in practice, impossible in pi, and the
-community enthusiasm has faded. Removed from `~/.claude.json` (backup at
-`~/.claude.json.bak-context7`); `obsidian` remains.
+Dropped the docs-MCP dependency on the user's call — unused in practice and impossible in
+pi. Removed from the Claude Code config; `obsidian` remains. If a docs lookup is wanted
+later it has to arrive as a pi extension registering a tool, not as an MCP server.
 
-[DISCOVERY] Leaked a live Context7 API key into the session transcript by printing
-`~/.claude.json` wholesale while checking MCP configuration. Sessions are plaintext JSONL
-under `~/.pi/agent/sessions/`, so the key is on disk in at least two places now. Added a
-rule to the standards: never paste a credential-bearing config into a transcript; grep the
-one field, or redact before printing. Key needs revoking at context7.com regardless of the
-server entry being removed.
+[DISCOVERY] Leaked a live third-party API key into the session transcript by printing a
+config file wholesale while checking MCP configuration. Sessions are plaintext JSONL under
+`~/.pi/agent/sessions/`, so the key landed on disk in at least two places. Added a rule to
+the standards: never paste a credential-bearing config into a transcript; grep the one
+field, or redact before printing. The key was revoked afterwards — removing a server entry
+does not invalidate a credential, only the issuer can.
 
 ## 2026-09-10T08:45Z — Built the `web` extension; pi no longer needs another harness
 
@@ -330,7 +331,8 @@ month, revisit; the answer then is one API key, not a provider matrix.
 
 [DECISION] Built it as an **extension registering tools**, not a script and not a skill.
 A script needs the agent to know it exists, which means a line in AGENTS.md — exactly the
-mechanism that just failed silently for Context7. A registered tool appears in the model's
+mechanism that had just failed silently for the docs-MCP rule. A registered tool appears
+in the model's
 tool list automatically. `pi/extensions/web/`: `web_search` and `web_fetch`, zero
 dependencies, Node 22 global `fetch`, `typebox` for parameters (a pi-bundled core package,
 so still no install). Deliberately NOT modelled on `file-search`, which drags in Effect.
@@ -351,7 +353,7 @@ no web tools… delegate to a `claude` subagent"; that is now false and is repla
 real tools plus "Never delegate a lookup to another harness; this setup is pi-only." The
 pi-only item in `## Next` is unblocked — nothing functional depends on Claude Code now.
 
-Third time today the standards described a world that did not exist (Context7 MCP that pi
+Third time today the standards described a world that did not exist (an MCP server pi
 cannot host, a `/plan` delivery idiom that never rendered, a claude escape hatch being
 removed). Standards that name specific tools rot silently; when a capability changes, grep
 `standards/AGENTS.md` in the same change.
@@ -611,3 +613,28 @@ The `pi update --all` hazard now has an owner in `## Next` instead of living onl
 an update re-runs `npm install`, restoring 184 MB and a 9-vulnerability tree that was deleted by
 hand. Deliberately not guarded in `pi/check.mjs`: the package sits under `~/.pi/agent/git/`,
 outside the repo, so a check there would test a path no clone has.
+
+## 2026-09-10T12:18Z — Scrubbed the docs-MCP references; key revoked
+
+[OUTCOME] The leaked key is revoked, so its `## Next` item is gone. Every reference to the
+docs-lookup MCP product is out of the repo — one `## Next` entry and eight journal mentions,
+now zero repo-wide.
+
+The journal mentions were genericised rather than deleted, because the entries they sit in
+carry lessons that outlive the product: that `standards/AGENTS.md` mandated a capability pi
+cannot host and nobody noticed for weeks, that a script needs a line in AGENTS.md to be
+discovered while a registered tool does not, and that printing a config file wholesale put a
+live credential into a plaintext transcript. Naming the vendor added nothing to any of them.
+
+[DECISION] No docs-lookup MCP in this harness. pi has no MCP and that is deliberate
+(`docs/usage.md`). If the capability is wanted later it arrives as an extension registering a
+tool, the way `web` did — not as an MCP server, which pi cannot load at all.
+
+[DISCOVERY] `rg -n -i <term>` returned nothing for the scrubbed product name while
+`grep -ril <term>` found nine matches in two files. Worth knowing before trusting a negative result from a search: confirm the tool
+can see the files at all, ideally by grepping for something you know is present. A clean
+search output and a search that never ran look identical.
+
+Claude Code's own state file still carries the string in `disabledMcpServers` and usage
+counters. Left alone: no credential, not our harness, and editing another tool's state file
+to remove a dead flag is a worse trade than leaving it.

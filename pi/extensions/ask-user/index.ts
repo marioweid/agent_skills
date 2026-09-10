@@ -15,6 +15,7 @@ import {
   matchesKey,
   Text,
   truncateToWidth,
+  wrapTextWithAnsi,
 } from "@earendil-works/pi-tui";
 import { Cause, Effect, Exit } from "effect";
 import { alertUser } from "../notify/index.ts";
@@ -74,29 +75,6 @@ interface DisplayOption {
   isOther?: boolean;
 }
 
-function wrapText(text: string, width: number): string[] {
-  const lines: string[] = [];
-  for (const paragraph of text.split("\n")) {
-    const words = paragraph.split(/\s+/).filter(Boolean);
-    if (words.length === 0) {
-      lines.push("");
-      continue;
-    }
-    let current = "";
-    for (const word of words) {
-      const candidate = current ? `${current} ${word}` : word;
-      if (candidate.length > width && current) {
-        lines.push(current);
-        current = word;
-      } else {
-        current = candidate;
-      }
-    }
-    if (current) lines.push(current);
-  }
-  return lines;
-}
-
 export default function askUser(pi: ExtensionAPI) {
   pi.registerTool({
     name: "ask_user",
@@ -148,7 +126,7 @@ export default function askUser(pi: ExtensionAPI) {
         ctx.ui.custom<SelectionResult>((tui, theme, _kb, done) => {
           let optionIndex = 0;
           let editMode = false;
-          let cachedLines: string[] | undefined;
+          let cached: { width: number; lines: string[] } | undefined;
 
           let settled = false;
 
@@ -190,7 +168,7 @@ export default function askUser(pi: ExtensionAPI) {
           };
 
           function refresh() {
-            cachedLines = undefined;
+            cached = undefined;
             tui.requestRender();
           }
 
@@ -255,7 +233,9 @@ export default function askUser(pi: ExtensionAPI) {
           }
 
           function render(width: number): string[] {
-            if (cachedLines) return cachedLines;
+            // Keyed by width: resizing the terminal only triggers a render, so an
+            // unkeyed cache would redraw lines wrapped for the old width.
+            if (cached?.width === width) return cached.lines;
 
             const lines: string[] = [];
             const add = (s: string) => lines.push(truncateToWidth(s, width));
@@ -267,7 +247,7 @@ export default function askUser(pi: ExtensionAPI) {
                 `─${title}${"─".repeat(Math.max(0, width - title.length - 1))}`,
               ),
             );
-            for (const line of wrapText(
+            for (const line of wrapTextWithAnsi(
               params.question,
               Math.max(10, width - 2),
             )) {
@@ -314,14 +294,14 @@ export default function askUser(pi: ExtensionAPI) {
             }
             add(theme.fg("accent", "─".repeat(width)));
 
-            cachedLines = lines;
+            cached = { width, lines };
             return lines;
           }
 
           return {
             render,
             invalidate: () => {
-              cachedLines = undefined;
+              cached = undefined;
             },
             handleInput,
             dispose: () => {

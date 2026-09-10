@@ -9,7 +9,13 @@
 import type { KeybindingsManager, Theme } from "@earendil-works/pi-coding-agent";
 import { getMarkdownTheme } from "@earendil-works/pi-coding-agent";
 import type { Component, Focusable, TUI } from "@earendil-works/pi-tui";
-import { Markdown, matchesKey, truncateToWidth, visibleWidth } from "@earendil-works/pi-tui";
+import {
+  Markdown,
+  matchesKey,
+  truncateToWidth,
+  visibleWidth,
+  wrapTextWithAnsi,
+} from "@earendil-works/pi-tui";
 import { homedir } from "node:os";
 import type { JournalEntry } from "./overview.ts";
 import { activityCounts, activityStrip, readJournal } from "./overview.ts";
@@ -158,30 +164,7 @@ export function nodeLabel(node: TreeNode, expanded: boolean): string {
   return `${glyph} ${text}`;
 }
 
-/** Hard-wraps one paragraph, keeping words whole where they fit. */
-function wrap(text: string, width: number): string[] {
-  const lines: string[] = [];
-  for (const paragraph of text.split("\n")) {
-    let current = "";
-    for (const word of paragraph.split(/\s+/).filter(Boolean)) {
-      if (current && current.length + 1 + word.length > width) {
-        lines.push(current);
-        current = word;
-      } else {
-        current = current ? `${current} ${word}` : word;
-      }
-      // A single word longer than the pane still has to be broken somewhere.
-      while (current.length > width) {
-        lines.push(current.slice(0, width));
-        current = current.slice(width);
-      }
-    }
-    lines.push(current);
-  }
-  return lines;
-}
-
-export interface ConversationLine {
+interface ConversationLine {
   readonly role: Turn["role"] | "none";
   readonly text: string;
   /** Already carries its own colours; the renderer must not restyle it. */
@@ -199,14 +182,14 @@ export interface ConversationLine {
 export function conversationLines(
   turns: readonly Turn[],
   width: number,
-  renderAnswer: (text: string, width: number) => string[] = wrap,
+  renderAnswer: (text: string, width: number) => string[] = wrapTextWithAnsi,
 ): ConversationLine[] {
   const out: ConversationLine[] = [];
   const body = Math.max(10, width - 2);
   for (const turn of turns) {
     if (out.length > 0) out.push({ role: "none", text: "" });
     if (turn.role === "user") {
-      for (const line of wrap(turn.text, body)) {
+      for (const line of wrapTextWithAnsi(turn.text, body)) {
         out.push({ role: "user", text: `› ${line}` });
       }
       continue;
@@ -366,6 +349,8 @@ class SessionTreeView implements Component, Focusable {
   private closed = false;
   /** One-line feedback for the footer, cleared on the next keypress. */
   private notice = "";
+  /** Sticky: the ticker died and live updates are gone until reopened. */
+  private tickError = "";
   /** The confirm popup, while it is up. */
   private pending?: { readonly path: string; readonly label: string };
   /** First visible line of the detail pane; paged with pageUp/pageDown. */
@@ -414,14 +399,18 @@ class SessionTreeView implements Component, Focusable {
   /**
    * A refresh must never take the session down: the store can vanish mid-read
    * during shutdown, and this runs on a timer with no caller to catch it.
+   * Stopping the ticker silently is just as bad though — the overlay would sit
+   * there frozen but plausible — so the failure is reported before it stops.
    */
   private tick(): void {
     if (this.closed) return;
     try {
       this.refresh();
       this.tui.requestRender();
-    } catch {
+    } catch (error) {
       clearInterval(this.ticker);
+      this.tickError = `Live updates stopped: ${error instanceof Error ? error.message : String(error)}`;
+      this.tui.requestRender();
       return;
     }
     void this.rescan();
@@ -681,7 +670,9 @@ class SessionTreeView implements Component, Focusable {
     lines.push(theme.fg("border", "─".repeat(width)));
     lines.push(
       truncateToWidth(
-        this.notice
+        this.tickError
+          ? theme.fg("error", `  ${this.tickError}`)
+          : this.notice
           ? theme.fg("warning", `  ${this.notice}`)
           : theme.fg(
               "dim",
@@ -709,7 +700,7 @@ class SessionTreeView implements Component, Focusable {
       theme.fg("text", truncateToWidth(pending.label, inner)),
       theme.fg("muted", truncateToWidth(pending.path, inner)),
       "",
-      ...wrap("The transcript and its artifacts are removed from disk. This cannot be undone.", inner).map(
+      ...wrapTextWithAnsi("The transcript and its artifacts are removed from disk. This cannot be undone.", inner).map(
         (line) => theme.fg("muted", line),
       ),
       "",

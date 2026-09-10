@@ -108,21 +108,8 @@ interface Entry {
 export interface SubagentReadModel {
   list(): ReadonlyArray<SubagentSnapshot>;
   get(id: string): SubagentSnapshot | undefined;
-  size(): number;
-  /** Any-change notification (footer status, dashboard). */
+  /** Any-change notification (footer status). */
   subscribe(listener: () => void): () => void;
-  /** Per-subagent notification (takeover view). */
-  subscribeTo(id: string, listener: () => void): () => void;
-  /** Fire-and-forget: steer/continue a subagent (takeover input). */
-  requestSend(id: string, text: string): void;
-  /** Fire-and-forget: abort a running subagent (dashboard `x`, takeover). */
-  requestAbort(id: string): void;
-  /**
-   * Drop a settled subagent from tracking (`ctrl+x` in the dashboard). Refuses while it
-   * is still running or while a `subagent_wait` is collecting its result,
-   * because forgetting either one would strand the caller.
-   */
-  requestForget(id: string): boolean;
   /**
    * Register the settle hook. `consumed` is true when an active
    * subagent_wait/cancel is collecting the result (so it must not also be
@@ -190,7 +177,6 @@ const makeManager = Effect.gen(function* () {
   /** One-shot nextChange waiters, swapped out before invocation so waiters
    * re-registering during notification are not visited in the same sweep. */
   let changeWaiters: Array<() => void> = [];
-  const idListeners = new Map<string, Set<() => void>>();
   const cleanups = new Set<Fiber.Fiber<unknown>>();
   let modelCounter = 0;
   let reserved = 0;
@@ -198,7 +184,7 @@ const makeManager = Effect.gen(function* () {
   let onSettled:
     ((snap: SubagentSnapshot, consumed: boolean) => void) | undefined;
 
-  const notify = (id?: string) => {
+  const notify = () => {
     const waiters = changeWaiters;
     changeWaiters = [];
     for (const waiter of waiters) waiter();
@@ -207,15 +193,6 @@ const makeManager = Effect.gen(function* () {
         listener();
       } catch {
         // A failed status/render listener must not corrupt lifecycle state.
-      }
-    }
-    if (id) {
-      for (const listener of idListeners.get(id) ?? []) {
-        try {
-          listener();
-        } catch {
-          // Same.
-        }
       }
     }
   };
@@ -304,7 +281,7 @@ const makeManager = Effect.gen(function* () {
     s.liveTools = [];
     s.queued = [];
     const consumed = (waitInterest.get(s.id) ?? 0) > 0;
-    notify(s.id);
+    notify();
     try {
       // During teardown, don't queue results into a shutting-down session.
       if (!disposed) onSettled?.(s, consumed);
@@ -419,7 +396,7 @@ const makeManager = Effect.gen(function* () {
         s.errorText = bounded(event.message);
         break;
     }
-    notify(s.id);
+    notify();
   };
 
   const spawn = (backendName: BackendName, task: SpawnTask) =>
@@ -443,6 +420,64 @@ const makeManager = Effect.gen(function* () {
         },
       );
 
+      /** Starts the backend session in `scope` and registers it as an entry. */
+      const register = (backend: SubagentBackend, scope: Scope.Closeable) =>
+        Effect.gen(function* () {
+          const session = yield* Scope.provide(backend.spawn(task), scope);
+          if (disposed) {
+            return yield* new SpawnError({
+              message: "Subagent manager shut down while spawning.",
+            });
+          }
+
+          const id = `sa-${++modelCounter}`;
+          const meta = yield* session.meta;
+          const entry: Entry = {
+            snapshot: {
+              id,
+              backend: backendName,
+              title: task.title,
+              prompt: task.prompt,
+              cwd: task.cwd,
+              status: "running",
+              createdAt: Date.now(),
+              meta,
+              usage: { contextWindow: meta.contextWindow },
+              transcript: [],
+              liveTools: [],
+              queued: [],
+              finalText: "",
+              turns: 0,
+            },
+            session,
+            scope,
+            liveToolMap: new Map(),
+          };
+          entries.set(id, entry);
+
+          // Pump: fold the event stream into the snapshot. Tied to the entry
+          // scope, so closing the scope stops it. If the stream ends while the
+          // subagent still looks running, the backend died out from under us.
+          const pump = Stream.runForEach(session.events, (event) =>
+            Effect.sync(() => foldEvent(entry, event)),
+          ).pipe(
+            Effect.ensuring(
+              Effect.sync(() => {
+                if (entry.snapshot.status === "running") {
+                  settle(entry, {
+                    _tag: "Failed",
+                    errorText: "Backend event stream ended unexpectedly",
+                  });
+                }
+              }),
+            ),
+          );
+          entry.pump = yield* Scope.provide(Effect.forkScoped(pump), scope);
+
+          notify();
+          return entry.snapshot as SubagentSnapshot;
+        });
+
       const doSpawn = Effect.gen(function* () {
         const backend: SubagentBackend | undefined = registry.get(backendName);
         if (!backend) {
@@ -458,62 +493,16 @@ const makeManager = Effect.gen(function* () {
         }
 
         const scope = yield* Scope.make();
-        const session = yield* Scope.provide(backend.spawn(task), scope).pipe(
-          Effect.onError(() => Scope.close(scope, Exit.void)),
-        );
-        if (disposed) {
-          yield* Scope.close(scope, Exit.void);
-          return yield* new SpawnError({
-            message: "Subagent manager shut down while spawning.",
-          });
-        }
-
-        const id = `sa-${++modelCounter}`;
-        const meta = yield* session.meta;
-        const entry: Entry = {
-          snapshot: {
-            id,
-            backend: backendName,
-            title: task.title,
-            prompt: task.prompt,
-            cwd: task.cwd,
-            status: "running",
-            createdAt: Date.now(),
-            meta,
-            usage: { contextWindow: meta.contextWindow },
-            transcript: [],
-            liveTools: [],
-            queued: [],
-            finalText: "",
-            turns: 0,
-          },
-          session,
-          scope,
-          liveToolMap: new Map(),
-        };
-        entries.set(id, entry);
-
-        // Pump: fold the event stream into the snapshot. Tied to the entry
-        // scope, so closing the scope stops it. If the stream ends while the
-        // subagent still looks running, the backend died out from under us.
-        const pump = Stream.runForEach(session.events, (event) =>
-          Effect.sync(() => foldEvent(entry, event)),
-        ).pipe(
-          Effect.ensuring(
-            Effect.sync(() => {
-              if (entry.snapshot.status === "running") {
-                settle(entry, {
-                  _tag: "Failed",
-                  errorText: "Backend event stream ended unexpectedly",
-                });
-              }
-            }),
+        // Everything past this point owns a live child process. Any failure
+        // *or* interruption — Esc during a 30 s codex handshake, the manager
+        // being disposed — must close the scope, or the process is orphaned;
+        // if the entry was already registered its slot also stays "running"
+        // forever, permanently burning one of the concurrency slots.
+        return yield* register(backend, scope).pipe(
+          Effect.onExit((exit) =>
+            Exit.isSuccess(exit) ? Effect.void : Scope.close(scope, Exit.void),
           ),
         );
-        entry.pump = yield* Scope.provide(Effect.forkScoped(pump), scope);
-
-        notify(id);
-        return entry.snapshot as SubagentSnapshot;
       });
 
       return yield* doSpawn.pipe(
@@ -569,7 +558,7 @@ const makeManager = Effect.gen(function* () {
           settle(entry, { _tag: "Interrupted" });
           entry.snapshot.errorText =
             "Abort deadline exceeded; session was force-disposed";
-          notify(entry.snapshot.id);
+          notify();
         });
         // Bound the close like disposeAll does: a stuck backend finalizer
         // must not hang cancel after the run is already settled.
@@ -681,45 +670,9 @@ const makeManager = Effect.gen(function* () {
   const view: SubagentReadModel = {
     list: () => [...entries.values()].map((entry) => entry.snapshot),
     get: (id) => entries.get(id)?.snapshot,
-    size: () => entries.size,
     subscribe: (listener) => {
       listeners.add(listener);
       return () => listeners.delete(listener);
-    },
-    subscribeTo: (id, listener) => {
-      let set = idListeners.get(id);
-      if (!set) {
-        set = new Set();
-        idListeners.set(id, set);
-      }
-      set.add(listener);
-      return () => {
-        set.delete(listener);
-        if (set.size === 0) idListeners.delete(id);
-      };
-    },
-    requestSend: (id, text) => {
-      runDetached(send(id, text).pipe(Effect.ignore));
-    },
-    requestAbort: (id) => {
-      const entry = entries.get(id);
-      if (!entry) return;
-      // UI-initiated aborts are not "consumed": the failed result still
-      // flows back to the parent as a follow-up message, matching v1.
-      runDetached(abortEntry(entry).pipe(Effect.ignore));
-    },
-    requestForget: (id) => {
-      const entry = entries.get(id);
-      if (!entry) return false;
-      if (entry.snapshot.status === "running" || waitInterest.has(id)) {
-        return false;
-      }
-      entries.delete(id);
-      const fiber = runDetached(closeEntryScope(entry));
-      cleanups.add(fiber);
-      fiber.addObserver(() => cleanups.delete(fiber));
-      notify(id);
-      return true;
     },
     setOnSettled: (hook) => {
       onSettled = hook;

@@ -1,5 +1,6 @@
 import { NodeServices } from "@effect/platform-node";
-import { assert, it } from "@effect/vitest";
+import assert from "node:assert/strict";
+import { test } from "node:test";
 import { homedir } from "node:os";
 import { dirname, join } from "node:path";
 import { Effect, FileSystem } from "effect";
@@ -22,13 +23,22 @@ import {
   type ReleaseAsset,
   type ResolvedBinary,
 } from "./src/binaries.ts";
-import { formatCapturedOutput, formatOutput } from "./src/output.ts";
+import { formatCapturedOutput } from "./src/output.ts";
 import { executeSearchProcess } from "./src/process.ts";
-import { installNotifications, makeBinaryInitializers } from "./index.ts";
+import {
+  classifySearchExit,
+  installNotifications,
+  makeBinaryInitializers,
+} from "./index.ts";
+
+/** `node --test` equivalent of `@effect/vitest`'s `it.effect`. */
+function effectTest<A, E>(name: string, body: () => Effect.Effect<A, E>) {
+  test(name, () => Effect.runPromise(body() as Effect.Effect<A, E, never>));
+}
 
 // --- argument construction -------------------------------------------------
 
-it("fd args: defaults list everything with the default limit", () => {
+test("fd args: defaults list everything with the default limit", () => {
   assert.deepEqual(buildFdArgs({}), [
     "--color=never",
     "--max-results",
@@ -38,7 +48,7 @@ it("fd args: defaults list everything with the default limit", () => {
   ]);
 });
 
-it("fd args: all options are translated and pattern stays behind --", () => {
+test("fd args: all options are translated and pattern stays behind --", () => {
   const args = buildFdArgs({
     pattern: "-rf",
     path: "@src",
@@ -67,7 +77,7 @@ it("fd args: all options are translated and pattern stays behind --", () => {
   ]);
 });
 
-it("fd args: out-of-range values are clamped", () => {
+test("fd args: out-of-range values are clamped", () => {
   const args = buildFdArgs({ max_depth: 500, limit: 1_000_000 });
   assert.deepEqual(args, [
     "--color=never",
@@ -80,7 +90,7 @@ it("fd args: out-of-range values are clamped", () => {
   ]);
 });
 
-it("rg args: defaults use smart-case and safe separators", () => {
+test("rg args: defaults use smart-case and safe separators", () => {
   assert.deepEqual(buildRgArgs({ pattern: "--help" }), [
     "--line-number",
     "--color=never",
@@ -94,7 +104,7 @@ it("rg args: defaults use smart-case and safe separators", () => {
   ]);
 });
 
-it("rg args: all options are translated", () => {
+test("rg args: all options are translated", () => {
   const args = buildRgArgs({
     pattern: "TODO",
     path: "@lib",
@@ -128,13 +138,13 @@ it("rg args: all options are translated", () => {
   ]);
 });
 
-it("rg args: case_sensitive false forces ignore-case", () => {
+test("rg args: case_sensitive false forces ignore-case", () => {
   const args = buildRgArgs({ pattern: "x", case_sensitive: false });
-  assert.isTrue(args.includes("--ignore-case"));
-  assert.isFalse(args.includes("--smart-case"));
+  assert.ok(args.includes("--ignore-case"));
+  assert.ok(!(args.includes("--smart-case")));
 });
 
-it("path normalization strips leading @ and expands ~", () => {
+test("path normalization strips leading @ and expands ~", () => {
   assert.equal(normalizeSearchPath("@src/lib"), "src/lib");
   assert.equal(normalizeSearchPath("~"), homedir());
   assert.equal(normalizeSearchPath("~/projects"), join(homedir(), "projects"));
@@ -174,7 +184,7 @@ function makeEnv(options: {
 
 const darwinArm = { os: "darwin", arch: "arm64" } as const;
 
-it.effect("binary resolution: system fd wins and nothing is installed", () =>
+effectTest("binary resolution: system fd wins and nothing is installed", () =>
   Effect.gen(function* () {
     const env = makeEnv({ available: ["fd"] });
     const resolved = yield* resolveBinary(
@@ -193,7 +203,7 @@ it.effect("binary resolution: system fd wins and nothing is installed", () =>
   }),
 );
 
-it.effect("binary resolution: fdfind is accepted as a system fd", () =>
+effectTest("binary resolution: fdfind is accepted as a system fd", () =>
   Effect.gen(function* () {
     const env = makeEnv({ available: ["fdfind"] });
     const resolved = yield* resolveBinary(
@@ -212,7 +222,7 @@ it.effect("binary resolution: fdfind is accepted as a system fd", () =>
   }),
 );
 
-it.effect("binary resolution: existing bin fallback is used silently", () =>
+effectTest("binary resolution: existing bin fallback is used silently", () =>
   Effect.gen(function* () {
     const env = makeEnv({ available: ["/repo/bin/rg"] });
     const resolved = yield* resolveBinary(
@@ -231,7 +241,7 @@ it.effect("binary resolution: existing bin fallback is used silently", () =>
   }),
 );
 
-it.effect(
+effectTest(
   "binary resolution: missing everywhere triggers exactly one install",
   () =>
     Effect.gen(function* () {
@@ -253,19 +263,19 @@ it.effect(
     }),
 );
 
-it.effect("binary resolution: install failure surfaces a typed error", () =>
+effectTest("binary resolution: install failure surfaces a typed error", () =>
   Effect.gen(function* () {
     const env = makeEnv({ available: [], installShouldFail: true });
     const error = yield* Effect.flip(
       resolveBinary(TOOL_SPECS.fd, "/repo/bin", darwinArm, env),
     );
 
-    assert.instanceOf(error, InstallError);
+    assert.ok(error instanceof InstallError);
     assert.equal(error.message, "network down");
   }),
 );
 
-it.effect(
+effectTest(
   "binary resolution: unsupported platform fails without installing",
   () =>
     Effect.gen(function* () {
@@ -279,12 +289,12 @@ it.effect(
         ),
       );
 
-      assert.instanceOf(error, UnsupportedPlatformError);
+      assert.ok(error instanceof UnsupportedPlatformError);
       assert.equal(env.installs.length, 0);
     }),
 );
 
-it.effect("binary resolution: one failed tool does not disable the other", () =>
+effectTest("binary resolution: one failed tool does not disable the other", () =>
   Effect.gen(function* () {
     const env = makeEnv({
       available: ["rg"],
@@ -295,36 +305,36 @@ it.effect("binary resolution: one failed tool does not disable the other", () =>
     const fdError = yield* Effect.flip(initializers.fd);
     const rg = yield* initializers.rg;
 
-    assert.instanceOf(fdError, InstallError);
+    assert.ok(fdError instanceof InstallError);
     assert.deepEqual(rg, { tool: "rg", command: "rg", source: "system" });
   }),
 );
 
-it("release assets cover macOS and Linux on arm64 and x64 over HTTPS", () => {
+test("release assets cover macOS and Linux on arm64 and x64 over HTTPS", () => {
   for (const os of ["darwin", "linux"] as const) {
     for (const arch of ["arm64", "x64"] as const) {
       for (const tool of ["fd", "rg"] as const) {
         const asset = releaseAsset(tool, { os, arch });
-        assert.isDefined(asset, `${tool} ${os}/${arch}`);
+        assert.notEqual(asset, undefined, `${tool} ${os}/${arch}`);
         assert.match(asset.url, /^https:\/\//);
-        assert.isTrue(asset.url.endsWith(asset.fileName));
+        assert.ok(asset.url.endsWith(asset.fileName));
         assert.match(asset.sha256, /^[a-f0-9]{64}$/);
       }
     }
   }
 });
 
-it("linux assets use statically linked musl builds", () => {
+test("linux assets use statically linked musl builds", () => {
   const asset = releaseAsset("fd", { os: "linux", arch: "x64" });
-  assert.isTrue(asset?.url.includes("unknown-linux-musl"));
+  assert.ok(asset?.url.includes("unknown-linux-musl"));
 });
 
-it("Intel macOS uses the latest fd release that publishes that target", () => {
+test("Intel macOS uses the latest fd release that publishes that target", () => {
   const asset = releaseAsset("fd", { os: "darwin", arch: "x64" });
   assert.equal(asset?.version, FD_INTEL_DARWIN_VERSION);
 });
 
-it.effect(
+effectTest(
   "bounded downloads reject oversized declared and streamed bodies",
   () =>
     Effect.gen(function* () {
@@ -355,7 +365,7 @@ it.effect(
 
 // --- notification policy ----------------------------------------------------
 
-it("notifications: only fresh installs notify", () => {
+test("notifications: only fresh installs notify", () => {
   const system: ResolvedBinary = {
     tool: "fd",
     command: "fd",
@@ -381,7 +391,7 @@ it("notifications: only fresh installs notify", () => {
 
 // --- output truncation -------------------------------------------------------
 
-it.effect("process output is streamed to a complete spill file", () =>
+effectTest("process output is streamed to a complete spill file", () =>
   Effect.gen(function* () {
     const result = yield* executeSearchProcess({
       command: process.execPath,
@@ -392,10 +402,10 @@ it.effect("process output is streamed to a complete spill file", () =>
     const formatted = formatCapturedOutput(result.output);
 
     assert.equal(result.code, 0);
-    assert.isTrue(formatted.truncated);
+    assert.ok(formatted.truncated);
     assert.equal(formatted.lineCount, 3000);
     assert.match(formatted.text, /2000 of 3000 lines/);
-    assert.isDefined(formatted.fullOutputPath);
+    assert.notEqual(formatted.fullOutputPath, undefined);
 
     const fs = yield* FileSystem.FileSystem;
     const fullOutput = yield* fs.readFileString(formatted.fullOutputPath);
@@ -407,37 +417,40 @@ it.effect("process output is streamed to a complete spill file", () =>
   }).pipe(Effect.provide(NodeServices.layer)),
 );
 
-it("output: small results pass through untouched", async () => {
-  const formatted = await formatOutput("a.ts\nb.ts\n", {
-    tempPrefix: "pi-fd-",
-    persistFullOutput: () => Promise.reject(new Error("should not persist")),
+// --- exit classification -----------------------------------------------------
+
+test("rg exit 1 with no output is a clean no-match, not an error", () => {
+  assert.deepEqual(classifySearchExit("rg", 1, 0), {
+    errored: false,
+    fatal: false,
   });
-  assert.equal(formatted.text, "a.ts\nb.ts");
-  assert.equal(formatted.lineCount, 2);
-  assert.isFalse(formatted.truncated);
-  assert.isUndefined(formatted.fullOutputPath);
 });
 
-it("output: oversized results are truncated and persisted", async () => {
-  const bigOutput = Array.from({ length: 3000 }, (_, i) => `file-${i}.ts`).join(
-    "\n",
-  );
-  let persisted: string | undefined;
-  const formatted = await formatOutput(bigOutput, {
-    tempPrefix: "pi-fd-",
-    persistFullOutput: async (full) => {
-      persisted = full;
-      return "/tmp/fake/output.txt";
-    },
+test("rg exit 2 keeps the matches it did find and warns", () => {
+  assert.deepEqual(classifySearchExit("rg", 2, 12), {
+    errored: true,
+    fatal: false,
   });
-  assert.isTrue(formatted.truncated);
-  assert.equal(formatted.fullOutputPath, "/tmp/fake/output.txt");
-  assert.equal(persisted, bigOutput);
-  assert.match(formatted.text, /\[Output truncated: 2000 of 3000 lines/);
-  assert.match(
-    formatted.text,
-    /Full output saved to: \/tmp\/fake\/output\.txt\]/,
-  );
-  const shownLines = formatted.text.split("\n");
-  assert.equal(shownLines[0], "file-0.ts");
+});
+
+test("an error with nothing to show is fatal", () => {
+  assert.deepEqual(classifySearchExit("rg", 2, 0), {
+    errored: true,
+    fatal: true,
+  });
+  assert.deepEqual(classifySearchExit("fd", 1, 0), {
+    errored: true,
+    fatal: true,
+  });
+});
+
+test("fd exit 1 with results is not a clean run", () => {
+  assert.deepEqual(classifySearchExit("fd", 1, 3), {
+    errored: true,
+    fatal: false,
+  });
+  assert.deepEqual(classifySearchExit("fd", 0, 3), {
+    errored: false,
+    fatal: false,
+  });
 });

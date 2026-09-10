@@ -35,6 +35,17 @@ const STDOUT_BUFFER_MAX_BYTES = 4 * 1024 * 1024;
 
 type JsonRecord = Record<string, unknown>;
 
+/**
+ * Our own request deadline, as opposed to a protocol error the server sent us.
+ * Only the former means the app-server has stopped answering and must be killed.
+ */
+export class RequestTimeout extends Error {
+  constructor(method: string) {
+    super(`Codex app-server request ${method} timed out.`);
+    this.name = "RequestTimeout";
+  }
+}
+
 interface PendingRequest {
   readonly resolve: (result: JsonRecord) => void;
   readonly reject: (error: Error) => void;
@@ -359,6 +370,14 @@ const makeCodexSession = (
     /** Turns locally settled by the interrupt fallback may still emit late events. */
     const ignoredTurnIds = new Set<string>();
 
+    // `writable` is check-then-act: the app-server can die between the test and
+    // the write, and an unhandled 'error' on stdin (EPIPE, ERR_STREAM_DESTROYED)
+    // would take the whole pi process down, not just this subagent.
+    child.stdin.on("error", (error) => {
+      state.closed = true;
+      rejectPending(`Codex app-server stdin failed: ${boundedError(error)}`);
+    });
+
     const writeMessage = (message: JsonRecord) => {
       if (state.closed || !child.stdin.writable) return false;
       child.stdin.write(`${JSON.stringify(message)}\n`);
@@ -378,7 +397,7 @@ const makeCodexSession = (
         const id = ++state.nextRequestId;
         const timer = setTimeout(() => {
           pendingRequests.delete(id);
-          reject(new Error(`Codex app-server request ${method} timed out.`));
+          reject(new RequestTimeout(method));
         }, timeoutMs);
         pendingRequests.set(id, { resolve, reject, timer });
         if (!writeMessage({ id, method, params })) {
@@ -508,8 +527,10 @@ const makeCodexSession = (
           // A timed-out turn/start means a turn may be running that we can
           // never see or interrupt (no turn id). That session cannot be
           // trusted with further work — kill it; the exit handler reports
-          // the death. Explicit protocol rejections keep the session alive.
-          if (errorText.includes("timed out")) {
+          // the death. Explicit protocol rejections keep the session alive,
+          // so this branches on our own error type, never on its wording:
+          // an upstream "model request timed out" must not kill the server.
+          if (error instanceof RequestTimeout) {
             void terminateChild(child, () => state.exited);
           }
         },
@@ -1037,6 +1058,9 @@ function terminateChild(
       done = true;
       if (forceTimer) clearTimeout(forceTimer);
       if (lastTimer) clearTimeout(lastTimer);
+      // The deadline path resolves without an exit event; leaving the listener
+      // attached leaks one per call, and this is reachable once per turn.
+      child.off("exit", finish);
       resolve();
     };
     child.once("exit", finish);
@@ -1050,11 +1074,6 @@ function terminateChild(
 
 export const codexBackend: SubagentBackend = {
   name: "codex",
-  capabilities: {
-    steering: false,
-    modelSelection: true,
-    reasoningEffort: true,
-  },
   available: Effect.sync(() => resolveCodexBinary() !== undefined),
   spawn: makeCodexSession,
 };

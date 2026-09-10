@@ -7,27 +7,11 @@ import {
   visibleWidth,
 } from "@earendil-works/pi-tui";
 import { Effect } from "effect";
+import { sanitizeTerminalText } from "../../shared/terminal-text.ts";
 import { runCommand } from "./process.ts";
 
 const DIFF_SCROLL_STEP = 5;
 const MAX_DIFF_LINES = 20_000;
-// Strip terminal control sequences from repository-controlled paths and diff
-// text before applying trusted theme styling.
-// eslint-disable-next-line no-control-regex
-const OSC_PATTERN =
-  /(?:\u001b\]|\u009d)(?:[^\u0007\u001b\u009c]|\u001b(?!\\))*(?:\u0007|\u001b\\|\u009c)/g;
-// eslint-disable-next-line no-control-regex
-const CSI_PATTERN = /(?:\u001b\[|\u009b)[0-?]*[ -/]*[@-~]/g;
-// eslint-disable-next-line no-control-regex
-const ESCAPE_PATTERN = /\u001b(?:[()][0-2A-Z]|[ -/]*[@-~])/g;
-
-export function sanitizeTerminalText(text: string) {
-  return text
-    .replace(OSC_PATTERN, "")
-    .replace(CSI_PATTERN, "")
-    .replace(ESCAPE_PATTERN, "")
-    .replace(/[\u0000-\u0008\u000b-\u001f\u007f-\u009f]/g, "");
-}
 
 interface ChangedPath {
   path: string;
@@ -156,13 +140,16 @@ export const loadChangedFiles = Effect.fn("git-info.loadChangedFiles")(
     );
     if (statusResult.code !== 0) return null;
 
+    // Two git processes per changed path. Serially, a tree with a few hundred
+    // untracked files (a fresh clone, a build directory) makes the command look
+    // hung before the viewer opens.
     const changedPaths = parseChangedPaths(statusResult.stdout);
-    const files: ChangedFile[] = [];
-    for (const changedPath of changedPaths) {
-      files.push(yield* loadFile(repoRoot, changedPath, headResult.code === 0));
-    }
-
-    return files;
+    return yield* Effect.all(
+      changedPaths.map((changedPath) =>
+        loadFile(repoRoot, changedPath, headResult.code === 0),
+      ),
+      { concurrency: 8 },
+    );
   },
 );
 

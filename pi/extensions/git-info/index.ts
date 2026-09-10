@@ -22,6 +22,8 @@ import {
 } from "./src/runtime.ts";
 
 const POLL_INTERVAL_MS = 3_000;
+/** How long a failed `gh` lookup is left alone before the poll tries again. */
+const PR_RETRY_AFTER_MS = 60_000;
 const GIT_TIMEOUT_MS = 3_000;
 const GH_TIMEOUT_MS = 10_000;
 
@@ -43,9 +45,11 @@ function parsePullRequest(value: unknown) {
   } satisfies PullRequestInfo;
 }
 
-function parsePullRequestJson(value: string) {
+/** Parses the one-element array `gh pr list --json` prints; `[]` means no PR. */
+export function parsePullRequestJson(value: string) {
   try {
-    return parsePullRequest(JSON.parse(value));
+    const parsed: unknown = JSON.parse(value);
+    return Array.isArray(parsed) ? parsePullRequest(parsed[0]) : null;
   } catch {
     return null;
   }
@@ -58,6 +62,8 @@ export default function gitInfo(pi: ExtensionAPI) {
   let currentContext: ExtensionContext | undefined;
   let generation = 0;
   let queriedPrBranch: string | null = null;
+  /** Epoch ms after which a failed PR lookup may be retried; 0 = nothing owed. */
+  let prRetryAfter = 0;
   const refreshCoordinator = makeRefreshCoordinator();
 
   const getRuntime = () => (runtime ??= createRuntime());
@@ -71,13 +77,28 @@ export default function gitInfo(pi: ExtensionAPI) {
 
   const lookupPullRequest = (ctx: ExtensionContext, branch: string) =>
     Effect.gen(function* () {
+      // `pr list` exits 0 with `[]` when the branch simply has no PR, where
+      // `pr view` exits 1 for that and for an offline or rate-limited call
+      // alike. The two have to be told apart: "no PR" is a cacheable answer,
+      // a failed call must stay retryable. `undefined` means "still unknown".
       const result = yield* run(
         "gh",
-        ["pr", "view", branch, "--json", "number,url,state,isDraft"],
+        [
+          "pr",
+          "list",
+          "--head",
+          branch,
+          "--state",
+          "open",
+          "--json",
+          "number,url,state,isDraft",
+          "--limit",
+          "1",
+        ],
         ctx,
         GH_TIMEOUT_MS,
       );
-      if (result.code !== 0) return null;
+      if (result.code !== 0) return undefined;
       return parsePullRequestJson(result.stdout);
     });
 
@@ -148,10 +169,18 @@ export default function gitInfo(pi: ExtensionAPI) {
           return;
         }
 
-        if (forcePullRequest || branchChanged) {
+        const retryDue = prRetryAfter > 0 && Date.now() >= prRetryAfter;
+        if (forcePullRequest || branchChanged || retryDue) {
           queriedPrBranch = branchName;
           const pullRequest = yield* lookupPullRequest(ctx, branchName);
           if (refreshGeneration !== generation) return;
+          // A failed lookup is retried later rather than cached as "no PR":
+          // one offline or rate-limited `gh` call used to hide the PR for the
+          // rest of the session. The delay keeps a broken `gh` (unauthorized,
+          // not installed) from spawning a process on every 3 s poll.
+          prRetryAfter =
+            pullRequest === undefined ? Date.now() + PR_RETRY_AFTER_MS : 0;
+          if (pullRequest === undefined) return;
           state = { ...state, pullRequest };
           publish();
         }

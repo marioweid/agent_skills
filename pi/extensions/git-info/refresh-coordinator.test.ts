@@ -6,6 +6,7 @@ import { makeRefreshCoordinator } from "./src/refresh-coordinator.ts";
 test("an explicit refresh waits for an active background refresh", async () => {
   const coordinator = makeRefreshCoordinator();
   let state = 0;
+  let skipped = 0;
 
   const result = await Effect.runPromise(
     Effect.gen(function* () {
@@ -22,11 +23,15 @@ test("an explicit refresh waits for an active background refresh", async () => {
       );
 
       yield* Deferred.await(started);
+      // The background refresh holds the permit, so this one must not run at
+      // all. A separate counter, because the background effect would overwrite
+      // any change this made to `state`.
       yield* coordinator.runIfIdle(
         Effect.sync(() => {
-          state = 99;
+          skipped += 1;
         }),
       );
+      assert.equal(skipped, 0, "a busy coordinator must skip runIfIdle");
 
       const forced = yield* Effect.forkChild(
         coordinator.run(
@@ -45,4 +50,20 @@ test("an explicit refresh waits for an active background refresh", async () => {
 
   assert.equal(result, 2);
   assert.equal(state, 2);
+  assert.equal(skipped, 0);
+});
+
+test("runIfIdle runs the effect when nothing holds the permit", async () => {
+  const coordinator = makeRefreshCoordinator();
+  let ran = 0;
+
+  await Effect.runPromise(
+    coordinator.runIfIdle(
+      Effect.sync(() => {
+        ran += 1;
+      }),
+    ),
+  );
+
+  assert.equal(ran, 1);
 });

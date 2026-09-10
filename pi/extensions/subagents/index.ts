@@ -52,10 +52,8 @@ import {
   REASONING_EFFORTS,
   type SubagentSnapshot,
 } from "./src/domain.ts";
-import {
-  formatActivityStatus,
-  formatContextUtilization,
-} from "./src/format.ts";
+import { formatContextUtilization } from "../shared/context-utilization.ts";
+import { formatActivityStatus } from "../shared/activity-status.ts";
 import { SubagentManager, type SubagentManagerShape } from "./src/manager.ts";
 import {
   buildAgentParameterDescription,
@@ -73,7 +71,6 @@ import {
   SUBAGENT_WAIT_PARAMETER_DESCRIPTIONS,
   SUBAGENT_WAIT_TOOL_DESCRIPTION,
 } from "./src/prompt.ts";
-import { createDeferredResultDelivery } from "./src/result-delivery.ts";
 import {
   createSubagentRuntime,
   runTool,
@@ -141,7 +138,8 @@ export default function (pi: ExtensionAPI) {
   let sessionContext: ExtensionContext | undefined;
   let ui: ExtensionUIContext | undefined;
   let unsubStatus: (() => void) | undefined;
-  const resultDelivery = createDeferredResultDelivery<SubagentSnapshot>();
+  /** Settled results waiting for the next turn, keyed by subagent id. */
+  const pendingResults = new Map<string, SubagentSnapshot>();
   /** Role name per spawned child; the manager snapshot has no place for it. */
   const roleById = new Map<string, string>();
   const getRuntime = () => (runtime ??= createSubagentRuntime());
@@ -216,7 +214,9 @@ export default function (pi: ExtensionAPI) {
   };
 
   const flushResults = () => {
-    for (const snap of resultDelivery.drain()) deliverResult(snap);
+    const ready = [...pendingResults.values()];
+    pendingResults.clear();
+    for (const snap of ready) deliverResult(snap);
   };
 
   const onSettled = (snap: SubagentSnapshot, consumed: boolean) => {
@@ -224,14 +224,14 @@ export default function (pi: ExtensionAPI) {
     // append into a session whose extension runtime is already closing.
     if (!sessionContext) return;
     if (consumed) {
-      resultDelivery.consume([snap.id]);
+      pendingResults.delete(snap.id);
       return;
     }
     // Keep the result retractable while the parent is working. A later
     // subagent_wait can consume it before agent_settled flushes follow-ups.
     // Defer a copy: the live snapshot keeps mutating if the subagent is
     // restarted before the deferred result flushes.
-    resultDelivery.defer({ ...snap, meta: { ...snap.meta } });
+    pendingResults.set(snap.id, { ...snap, meta: { ...snap.meta } });
     if (sessionContext?.isIdle()) flushResults();
   };
 
@@ -254,7 +254,7 @@ export default function (pi: ExtensionAPI) {
 
   pi.on("session_shutdown", async () => {
     sessionContext = undefined;
-    resultDelivery.clear();
+    pendingResults.clear();
     unsubStatus?.();
     unsubStatus = undefined;
     ui?.setStatus("subagents", undefined);
@@ -424,7 +424,7 @@ export default function (pi: ExtensionAPI) {
 
       // Settlement may have happened before this wait began. Remove any
       // deferred automatic delivery now that the tool is returning the result.
-      resultDelivery.consume(ids);
+      for (const id of ids) pendingResults.delete(id);
 
       const sections: string[] = [];
       let remainingBytes = WAIT_OUTPUT_MAX_BYTES;

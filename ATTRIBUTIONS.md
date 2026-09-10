@@ -14,7 +14,6 @@ as upstream.
 
 Vendored skills (under `skills/`):
 
-- `brainstorming`
 - `systematic-debugging`
 - `test-driven-development`
 

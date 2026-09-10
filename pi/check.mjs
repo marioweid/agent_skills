@@ -100,6 +100,33 @@ for (const [path, entry] of Object.entries(extensionsLock.packages)) {
   assert.equal(new URL(entry.resolved).origin, "https://registry.npmjs.org");
 }
 
+// Two ways an extension's checks silently stop checking anything, both of
+// which have already happened here: a tsconfig extending a path that does not
+// exist (tsc prints TS5083, drops `strict`, and the errors read as noise), and
+// a test file no runner ever names. The root `npm test` glob is one directory
+// deep, so a test file nested any deeper never runs.
+const extensionsDir = resolve(root, "extensions");
+for (const entry of readdirSync(extensionsDir, { withFileTypes: true })) {
+  if (!entry.isDirectory() || entry.name === "node_modules") continue;
+  const directory = resolve(extensionsDir, entry.name);
+  const config = resolve(directory, "tsconfig.json");
+  if (existsSync(config)) {
+    const { extends: base } = JSON.parse(readFileSync(config, "utf8"));
+    assert(
+      !base || existsSync(resolve(directory, base)),
+      `${entry.name}/tsconfig.json extends "${base}", which does not exist`,
+    );
+  }
+  for (const file of readdirSync(directory, { recursive: true })) {
+    const name = String(file);
+    if (!name.endsWith(".test.ts")) continue;
+    assert(
+      !name.includes("/"),
+      `${entry.name}/${name} is nested; the test runner only globs */*.test.ts`,
+    );
+  }
+}
+
 // The README tells a reader which pi the extensions were written against; the
 // version comes from the lockfile, so an upgrade only fails this when the two
 // actually drift apart.

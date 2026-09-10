@@ -17,6 +17,7 @@
     "typescript": "5.9.3"
   },
   "scripts": {
-    "check": "tsc --noEmit"
+    "check": "tsc --noEmit",
+    "test": "node --test --experimental-strip-types --no-warnings */*.test.ts"
   }
 }

@@ -11,13 +11,20 @@
 
 import { execFile } from "node:child_process";
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
-
-/** Published by the subagents extension on every manager change. */
-const SUBAGENT_ACTIVITY_CHANNEL = "subagents:activity";
+import {
+  asActivity,
+  SUBAGENT_ACTIVITY_CHANNEL,
+} from "../shared/subagent-activity.ts";
+import { sanitizeTerminalText } from "../shared/terminal-text.ts";
 
 /** Work shorter than this settles silently; a three-second answer needs no alert. */
 const MIN_RUN_MS = 10_000;
 const SOUND_FILE = "/System/Library/Sounds/Glass.aiff";
+
+/** Escapes a value for a PowerShell single-quoted string literal. */
+function psQuote(value: string) {
+  return value.replace(/'/g, "''");
+}
 
 function windowsToastScript(title: string, body: string) {
   const type = "Windows.UI.Notifications";
@@ -27,12 +34,20 @@ function windowsToastScript(title: string, body: string) {
   return [
     `${mgr} > $null`,
     `$xml = [${type}.ToastNotificationManager]::GetTemplateContent(${template})`,
-    `$xml.GetElementsByTagName('text')[0].AppendChild($xml.CreateTextNode('${body}')) > $null`,
-    `[${type}.ToastNotificationManager]::CreateToastNotifier('${title}').Show(${toast})`,
+    `$xml.GetElementsByTagName('text')[0].AppendChild($xml.CreateTextNode('${psQuote(body)}')) > $null`,
+    `[${type}.ToastNotificationManager]::CreateToastNotifier('${psQuote(title)}').Show(${toast})`,
   ].join("; ");
 }
 
-function showNotification(title: string, body: string) {
+/**
+ * The body can be model-authored text (`alertUser` passes an `ask_user`
+ * question), so it is stripped of control characters before it is embedded in
+ * an escape sequence — a bare BEL or ST would terminate the OSC payload and
+ * hand the remainder to the terminal as commands.
+ */
+function showNotification(rawTitle: string, rawBody: string) {
+  const title = sanitizeTerminalText(rawTitle);
+  const body = sanitizeTerminalText(rawBody);
   if (process.env.WT_SESSION) {
     execFile("powershell.exe", [
       "-NoProfile",
@@ -139,8 +154,8 @@ export default function (pi: ExtensionAPI) {
   });
 
   pi.events.on(SUBAGENT_ACTIVITY_CHANNEL, (data: unknown) => {
-    const running = (data as { running?: number } | undefined)?.running;
-    if (typeof running !== "number") return;
-    ring(tracker.onChildCount(running, Date.now()));
+    const activity = asActivity(data);
+    if (!activity) return;
+    ring(tracker.onChildCount(activity.running, Date.now()));
   });
 }

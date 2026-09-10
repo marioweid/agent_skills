@@ -74,8 +74,10 @@ export default function sessionTree(pi: ExtensionAPI) {
   let storeBroken = false;
   /** What this window is doing, for the coloured dot other windows draw. */
   let state: WindowState = "idle";
-  /** What it was doing before a prompt appeared, to go back to when it closes. */
-  let stateBeforePrompt: WindowState = "idle";
+  /** Whether the agent itself is running, independent of any prompt on top. */
+  let agentBusy = false;
+  /** Depth of nested blocking prompts; the tree overlay itself raises one. */
+  let promptDepth = 0;
 
   pi.registerFlag("no-session-tree", {
     description: "Do not open the session tree when pi starts",
@@ -187,21 +189,36 @@ export default function sessionTree(pi: ExtensionAPI) {
     openTree();
   });
 
-  const setState = (next: WindowState) => {
+  // The dot is derived, never restored from a saved copy: the agent can settle
+  // while a prompt is open (this extension's own overlay raises one), and
+  // putting back the state captured at prompt_start would leave the window
+  // showing "working" until the next run.
+  const republish = () => {
+    const next: WindowState =
+      promptDepth > 0 ? "waiting" : agentBusy ? "working" : "idle";
     if (state === next) return;
     state = next;
     publish();
   };
 
-  pi.on("agent_start", () => setState("working"));
-  pi.on("agent_settled", () => setState("idle"));
-  // A blocking prompt — ask_user, a confirm, the model picker — is the one
-  // state worth interrupting someone for, so it outranks whatever was running.
-  pi.on("ui_prompt_start", () => {
-    stateBeforePrompt = state;
-    setState("waiting");
+  pi.on("agent_start", () => {
+    agentBusy = true;
+    republish();
   });
-  pi.on("ui_prompt_end", () => setState(stateBeforePrompt));
+  pi.on("agent_settled", () => {
+    agentBusy = false;
+    republish();
+  });
+  // A blocking prompt — ask_user, a confirm, the model picker — is the one
+  // state worth interrupting someone for, so it outranks whatever is running.
+  pi.on("ui_prompt_start", () => {
+    promptDepth += 1;
+    republish();
+  });
+  pi.on("ui_prompt_end", () => {
+    promptDepth = Math.max(0, promptDepth - 1);
+    republish();
+  });
 
   // turn_start keeps this window's liveness fresh; turn_end is where the
   // title first exists, since the user entry is appended after the turn opens.
