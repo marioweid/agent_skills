@@ -2,22 +2,39 @@
 
 ## Now
 
-Rebuilt the pi harness around a delegating build loop: scouts read in parallel, one
-architect plans, one implementer writes, one reviewer gates, one scribe records.
-Config lives here and is symlinked into `~/.pi/agent`.
+Project-specific skills still load everywhere. Move `gwa2-bot` and `py4gw` into a
+repo-scoped load set (e.g. `~/.pi/agent/repos.json`) so they only activate when working in
+their respective directories. Design question: should Codex/Claude Code support this too,
+or is it pi-only?
 
+- [ ] Proof-of-concept: repo-scoped loader for the three project skills
 - [ ] Wire a post-edit quality gate (lint/format on changed files via an extension event)
-- [ ] Prune project-specific skills (`gwa2-bot`, `py4gw`, `logfire-*`) out of the always-on set
-- [ ] Run one real feature through `/build` end to end and fix what chafes
 - [ ] Collect triage misfires (build work done inline, or agents spawned for trivia) and sharpen the lane table from the real examples
+- [ ] A/B the thinned skills on a real task — confirm output quality held after the 9.9k-line cut
 
 ## Next
 
+- **Go pi-only: drop Claude Code entirely.** Remove the `claude` subagent backend
+  (`pi/extensions/subagents/src/backends/claude.ts`, `BACKEND_NAMES` in `src/domain.ts:13`,
+  the `backends` array in `src/runtime.ts:17`, `claude.test.ts` and the claude cases in
+  `manager.test.ts`), the `~/.claude` symlinks, and the Claude Code column from README.md's
+  link table. Decided 2026-09-11; deliberately deferred, not urgent.
+  Unblocked 2026-09-11: the `web` extension now gives pi its own `web_search`/`web_fetch`,
+  so nothing functional depends on the claude harness any more.
+  Unaffected: `anthropic-vertex/claude-*` models in `pi/agents/*.md` — that is the model
+  provider, not a harness.
 - Cross-family reviewer once a non-Anthropic provider is configured (only vertex has auth today)
 - Decide whether role files should name model tiers instead of provider-specific model ids
 - `.agent/` bootstrap for other repos (`/plan new <title>`)
 
 ## Done
 
+- 2026-09-11 Directory-row overview (activity strip + journal) in the session-tree detail pane
+  → .agent/plans/2026-09-11-recall-and-directory-overview.md
+- 2026-09-11 Evaluated and rejected `pi-hermes-memory`; built then deleted `/recall` — it reached
+  2 of 25 session files (6% of bytes), because the build loop's work lives in excluded subagent
+  transcripts. Fixed the same `deliverAs: "nextTurn"` bug in `project-memory`'s `/plan`.
+- 2026-09-10 Pruned generic skills duplicate to AGENTS.md and role prompts (25 → 19 directories)
+- 2026-09-10 Ran a real feature through the build loop end to end (the prune itself)
 - 2026-09-09 Dropped the subagent UI (`/subagents`, `/btw`, takeover) — the session tree covers it
 - 2026-09-09 Folded the `/fleet` browser into the session tree
