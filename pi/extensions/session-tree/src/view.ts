@@ -275,10 +275,11 @@ function directoryOverview(
   }
 
   if (journal.length > 0) {
-    // Journal file order is oldest-first (append-only); the last 3 entries
-    // reversed gives newest-first, matching D12.
-    const recent = journal.slice(-3).reverse();
-    lines.push("", `${label("journal")}${recent.length} most recent of ${journal.length}`);
+    // Journal file order is oldest-first (append-only); reversed gives
+    // newest-first, matching D12. The pane scrolls (⇞/⇟), so nothing is
+    // capped here.
+    const recent = [...journal].reverse();
+    lines.push("", `${label("journal")}${journal.length} entries, newest first`);
     for (const entry of recent) lines.push(`${GUTTER}${entry.date}  ${entry.brief}`);
   }
 

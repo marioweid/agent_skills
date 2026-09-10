@@ -118,12 +118,11 @@ test("a directory with no sessions renders without a strip and without throwing"
 
 // --- journal -------------------------------------------------------------------
 
-test("the three newest journal entries render newest first in the detail pane", () => {
+test("all journal entries render, newest first, in the detail pane", () => {
   // Four entries, oldest to newest in file order (D12's append-only
-  // convention) — the pane must show the last three, newest first, and drop
-  // the oldest one entirely. Asserting on `detailLines`' own output, not on a
-  // second `slice(-3).reverse()` in the test, is the point: that
-  // reimplementation passed even when the render path shipped the wrong end.
+  // convention) — the pane must show every one, newest first. The pane
+  // scrolls, so nothing here is dropped. Asserting on `detailLines`' own
+  // output, not on a second reimplementation in the test, is the point.
   const journal = parseJournal(
     [
       "## 2026-01-01 — first",
@@ -135,17 +134,31 @@ test("the three newest journal entries render newest first in the detail pane", 
   const [dirNode] = buildTree([row()], []);
   const lines = detailLines(dirNode, Date.now(), never, journal);
   const text = lines.join("\n");
-  assert.doesNotMatch(text, /2026-01-01/, "the oldest entry is dropped, not shown");
-  const order = ["2026-01-04", "2026-01-03", "2026-01-02"].map((date) => text.indexOf(date));
+  const dates = ["2026-01-01", "2026-01-02", "2026-01-03", "2026-01-04"];
+  const order = dates.map((date) => text.indexOf(date));
   assert.ok(
     order.every((index) => index >= 0),
-    "all three newest entries are present",
+    "every entry is present",
   );
   assert.deepEqual(
-    [...order].sort((a, b) => a - b),
+    [...order].sort((a, b) => b - a),
     order,
-    "newest first: 04, then 03, then 02, top to bottom",
+    "newest first: 04, then 03, 02, 01, top to bottom",
   );
+});
+
+test("a journal deeper than a plausible pane height still renders every entry", () => {
+  // 12 entries against a pane height of, say, 12 lines: the overflow the
+  // pane computes from this body is exactly what lets ⇞/⇟ page through it,
+  // so every entry surviving into `detailLines` is what makes paging work.
+  const heading = (n: number) => `## 2026-01-${String(n).padStart(2, "0")} — entry ${n}`;
+  const journal = parseJournal(Array.from({ length: 12 }, (_, i) => heading(i + 1)).join("\n"));
+  const [dirNode] = buildTree([row()], []);
+  const lines = detailLines(dirNode, Date.now(), never, journal);
+  const text = lines.join("\n");
+  for (let n = 1; n <= 12; n++) {
+    assert.ok(text.includes(`entry ${n}`), `entry ${n} is present`);
+  }
 });
 
 test("a heading with no summary falls back to the first body line", () => {
