@@ -1,7 +1,6 @@
 ---
 name: py4gw
 description: Use for Python work in ~/Sources/Py4GW_Reforged, the Guild Wars 1 automation platform. Covers Py4GWCoreLib, bots, widgets, HeroAI, BottingTree/Routines, GLOBAL_CACHE, PyImGui, debugging, and Py4GW-idiomatic bot authoring.
-license: MIT
 metadata:
   author: mario.weidner@gmx.de
   version: "0.2.0"

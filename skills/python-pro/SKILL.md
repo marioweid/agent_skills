@@ -1,7 +1,6 @@
 ---
 name: python-pro
 description: Use when writing, reviewing, or refactoring Python 3.13 code that needs type safety, async correctness, or solid tests. Generates type-annotated Python, configures `ty check` for strict type checking, writes pytest suites, and validates with ruff — not mypy/black/poetry. Invoke for type hints, async/await, dataclasses, uv, ruff, ty, pyproject.toml packaging, and anything matching this user's always-on global standards (already in context).
-license: MIT
 metadata:
   author: mario.weidner@gmx.de (forked + retuned from Jeffallan/claude-skills)
 ---
