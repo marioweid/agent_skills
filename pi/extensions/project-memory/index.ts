@@ -82,11 +82,19 @@ export default function projectMemory(pi: ExtensionAPI) {
     return { systemPrompt: `${event.systemPrompt}\n\n${block}` };
   });
 
-  /** Command output goes to the transcript, not a toast, so it stays readable. */
+  /**
+   * Command output goes to the transcript, not a toast, so it stays readable.
+   *
+   * `triggerTurn: false` rather than `deliverAs: "nextTurn"`: nextTurn is checked
+   * before the streaming branches and only flushes when the user sends their next
+   * prompt, so a command run from an idle prompt renders nothing at all. This way
+   * an idle session appends and emits immediately, and a streaming one defers to
+   * the end of the turn instead of landing between a tool call and its result.
+   */
   const show = (text: string) => {
     pi.sendMessage(
       { customType: "project-memory", content: text, display: true },
-      { deliverAs: "nextTurn" },
+      { triggerTurn: false },
     );
   };
 
