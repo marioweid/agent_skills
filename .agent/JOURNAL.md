@@ -638,3 +638,48 @@ search output and a search that never ran look identical.
 Claude Code's own state file still carries the string in `disabledMcpServers` and usage
 counters. Left alone: no credential, not our harness, and editing another tool's state file
 to remove a dead flag is a worse trade than leaving it.
+
+## 2026-09-10T12:45Z — Notification timing, journal paging, and three fixes inherited from a review branch
+
+[OUTCOME] `notify` rang when a background subagent finished and the agent then carried on
+working — reported twice. Cause was ordering in `subagents/src/manager.ts`: the child settle
+broadcasts the activity change *before* delivering the result, so `notify` saw zero children
+with the main thread idle and rang, and only afterwards did `deliverResult` wake the agent
+with `triggerTurn: true`.
+
+Fixed by removing the ring from `onChildCount` entirely rather than reordering those two
+lines. Every un-consumed child completion delivers a result that wakes the agent, and a
+consumed one happens while the parent sits inside `subagent_wait`, so the count reaching zero
+is never the end of a turn — only the following `agent_settled` is. Reordering would have
+hidden the symptom and left `notify` depending on two extensions firing in a precise order;
+deleting the second trigger removes the class of bug. Reverting it turns three tests red.
+
+[OUTCOME] The directory overview's journal block showed three entries against a pane that was
+already scrollable — `detailOverflow` is derived from whatever `detailLines` returns. Dropped
+the cap; all entries render newest-first and `⇞`/`⇟` pages them. Verified on a real 12-entry
+journal: 27-line body, overflows a 20-row pane by 7.
+
+Also dropped the "/sessions to view" hint from the subagents status line. The command stays —
+it is plumbing, invoked by `openTree()` for both the startup picker and the left-arrow
+editor, because a command is the only context that can switch sessions.
+
+[DISCOVERY] Three unrelated changes were sitting uncommitted from an earlier review-and-fix
+run, and I nearly mis-attributed them. A subagent reported them as pre-existing; the tree
+looked clean to me, so I suspected it of working out of scope. File mtimes put them before my
+previous commit — the subagent was right and I was wrong, because that commit had staged only
+`.agent/`. `git add -A` at the end of a session, or check mtimes before accusing a tool.
+
+Reviewed and committed them separately: sanitizing model-authored text in `ask-user` before it
+reaches the popup, and gating snapshot publishing on `mode === "tui"` so headless subagent
+children — which bind extensions in this same process — stop overwriting the parent window's
+pid-keyed entry and unlinking it on shutdown.
+
+[DISCOVERY] `sanitizeTerminalText` guards every path where untrusted text reaches the terminal
+and had no tests of its own. Writing them found a real gap: the escape pattern ended at
+`[@-~]`, so `ESC 7`/`ESC 8` cursor save-restore passed through. Widened to the Fp range and
+covered with seven cases. A security helper with only indirect coverage is a helper nobody has
+actually checked.
+
+[DISCOVERY] Counting tests per directory over-reports: directories without their own test
+script fall through to the root one and report its total. The honest figure is the root suite,
+178.
