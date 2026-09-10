@@ -534,3 +534,46 @@ repo's Codex pin.
 [DISCOVERY] `pi auth check` reports `not_ready` for both providers on this machine even
 though pi runs fine on Vertex, because that auth arrives via the extension shim plus gcloud
 ADC, which the check does not inspect. Do not use it as a readiness signal here.
+
+## 2026-09-12T09:20Z — Corrections to the 2026-09-10 and 2026-09-11 entries
+
+The journal is append-only, so the entries below are corrected here rather than edited in
+place. Four record errors, found by reviewing commit `d9271a7`.
+
+[OUTCOME] **The prune was bigger than recorded.** The 2026-09-10 entry says "Pruned 25 → 19
+skill directories. Deleted 6 fully duplicated skills". It removed **10** directories, 25 → 15:
+the six named plus `lavish`, `logfire-instrumentation`, `logfire-query` and `logfire-ui`.
+`.agent/PLAN.md` carried the same wrong figure in `## Done` and has been corrected.
+
+This miscount had a cost rather than being cosmetic: still counting the logfire skills as
+present is what produced the "three project skills" error in `## Now`, which is injected into
+every system prompt and had to be fixed separately in `e498265`. A wrong number in the log
+propagated into a wrong instruction to every agent.
+
+[OUTCOME] **`~/.claude/agents` should never have existed; removed.** The 19:40Z entry claims
+all three claude links were fixed "to the symlinks README.md:107-109 prescribes". README
+prescribes **two** — `~/.claude/skills` and `~/.claude/CLAUDE.md`, under "Other harnesses, if
+installed" — and its link table marks `pi/agents/` as pi-only. I found a broken
+`~/.claude/agents -> pipeline/agents` and repaired it instead of asking why it was in the
+table's "—" column.
+
+Repairing it was worse than leaving it broken: the role files carry pi model ids
+(`openai-codex/gpt-5.6-luna`) and pi tool names (`read`, `grep`, `ls`), while Claude Code uses
+`Read`, `Bash`, `Grep`. A broken link loads nothing; a working one feeds that harness five
+role files it cannot honour. The link is gone and `~/.claude/` now matches README exactly.
+
+[OUTCOME] **"Zero occurrences of the employer remain anywhere in the repo" was overstated.**
+True of file contents, which is all `pi/check.mjs` scans. Every commit, including the ones
+making that claim, carries an author email on the employer's domain — `git log --format=%ae`
+shows two addresses across this history. Recorded in `## Next` as an open decision rather
+than a solved problem, since the same entry calls the repo "intended to be publishable".
+
+[OUTCOME] **Stale figure and stale line numbers.** The 22:10Z entry says "the 9.9k-line
+prune"; the correct figure is 11,494 lines, already fixed in `PLAN.md` by `e498265`. The
+19:40Z entry cites `README.md:107-109` and `README.md:109`, which pointed at the symlink block
+when written and now point at the model-tier table.
+
+[DISCOVERY] Line numbers rot in an append-only file — the reference is frozen while the file
+it names keeps moving. Cite a heading instead. Applies to the whole journal, not just these
+entries: the code references that survived this review are the ones naming a symbol
+(`BACKEND_NAMES`, `readJournal`) rather than a line.

@@ -17,6 +17,10 @@ or is it pi-only?
 - Revoke the leaked Context7 API key at context7.com. It was printed into a session
   transcript on 2026-09-11 and `~/.pi/agent/sessions/` is plaintext, so removing the server
   entry from `~/.claude.json` did not invalidate it.
+- Decide what "publishable" means for git metadata. File contents carry no employer string,
+  but every commit's author email does (`git log --format=%ae`). `pi/check.mjs` scans files
+  only, so it cannot see this. Either set a per-repo `user.email` going forward and accept the
+  mixed history, or rewrite authorship before the repo goes anywhere public.
 
 - **Go pi-only: drop Claude Code entirely.** Remove the `claude` subagent backend
   (`pi/extensions/subagents/src/backends/claude.ts`, `BACKEND_NAMES` in `src/domain.ts:13`,
@@ -38,7 +42,7 @@ or is it pi-only?
 - 2026-09-11 Evaluated and rejected `pi-hermes-memory`; built then deleted `/recall` — it reached
   2 of 25 session files (6% of bytes), because the build loop's work lives in excluded subagent
   transcripts. Fixed the same `deliverAs: "nextTurn"` bug in `project-memory`'s `/plan`.
-- 2026-09-10 Pruned generic skills duplicate to AGENTS.md and role prompts (25 → 19 directories)
+- 2026-09-10 Pruned generic skills duplicate to AGENTS.md and role prompts (25 → 15 directories)
 - 2026-09-10 Ran a real feature through the build loop end to end (the prune itself)
 - 2026-09-09 Dropped the subagent UI (`/subagents`, `/btw`, takeover) — the session tree covers it
 - 2026-09-09 Folded the `/fleet` browser into the session tree
