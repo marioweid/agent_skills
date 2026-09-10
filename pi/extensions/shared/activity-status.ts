@@ -21,7 +21,9 @@ export function formatActivityStatus(theme: Theme, counts: ActivityCounts) {
   if (counts.failed > 0) {
     parts.push(theme.fg("error", `${SQUARE} ${counts.failed} failed`));
   }
-  parts.push(theme.fg("accent", "/sessions") + theme.fg("dim", " to view"));
+  // No "/sessions to view" hint: the tree is the startup view and left-arrow on
+  // an empty prompt reopens it, so the command is plumbing rather than
+  // something anyone types. The counts are the whole point of this line.
 
   return `${theme.fg("muted", "subagents:")} ${parts.join(theme.fg("dim", " · "))}`;
 }
