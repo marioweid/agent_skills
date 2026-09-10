@@ -15,7 +15,10 @@ const OSC_PATTERN =
 // eslint-disable-next-line no-control-regex
 const CSI_PATTERN = /(?:\u001b\[|\u009b)[0-?]*[ -/]*[@-~]/g;
 // eslint-disable-next-line no-control-regex
-const ESCAPE_PATTERN = /\u001b(?:[()][0-2A-Z]|[ -/]*[@-~])/g;
+// Final byte is `[0-~]`, not `[@-~]`: the Fp range (0x30-0x3f) carries ESC 7 and
+// ESC 8, cursor save/restore, which would otherwise survive and let injected
+// text reposition output that is drawn after it.
+const ESCAPE_PATTERN = /\u001b(?:[()][0-2A-Z]|[ -/]*[0-~])/g;
 
 export function sanitizeTerminalText(text: string) {
   return text
