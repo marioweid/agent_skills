@@ -19,7 +19,15 @@ import { sanitizeTerminalText } from "../shared/terminal-text.ts";
 
 /** Work shorter than this settles silently; a three-second answer needs no alert. */
 const MIN_RUN_MS = 10_000;
-const SOUND_FILE = "/System/Library/Sounds/Glass.aiff";
+const MACOS_SOUND_FILE = "/System/Library/Sounds/Glass.aiff";
+const LINUX_SOUND_FILE = "/run/current-system/sw/share/sounds/freedesktop/stereo/complete.oga";
+
+type Chime = { command: string; args: string[] };
+type ChimeSpawn = (
+  command: string,
+  args: string[],
+  callback: (error: Error | null) => void,
+) => unknown;
 
 /** Escapes a value for a PowerShell single-quoted string literal. */
 function psQuote(value: string) {
@@ -72,12 +80,33 @@ export function alertUser(message: string) {
   playChime();
 }
 
-function playChime() {
-  if (process.platform === "darwin") {
-    execFile("afplay", [SOUND_FILE]);
+export function selectChime(platform: NodeJS.Platform): Chime | undefined {
+  if (platform === "darwin") return { command: "afplay", args: [MACOS_SOUND_FILE] };
+  if (platform === "linux") {
+    return { command: "pw-play", args: ["--volume=0.15", LINUX_SOUND_FILE] };
+  }
+  return undefined;
+}
+
+export function playChime(
+  platform: NodeJS.Platform = process.platform,
+  spawn: ChimeSpawn = execFile,
+  write: (text: string) => unknown = (text) => process.stdout.write(text),
+) {
+  const chime = selectChime(platform);
+  if (!chime) {
+    write("\x07");
     return;
   }
-  process.stdout.write("\x07");
+
+  try {
+    spawn(chime.command, chime.args, (error) => {
+      if (error && platform === "linux") write("\x07");
+    });
+  } catch (error) {
+    if (platform !== "linux") throw error;
+    write("\x07");
+  }
 }
 
 export function formatDuration(ms: number) {
@@ -156,7 +185,6 @@ export default function (pi: ExtensionAPI) {
   const ring = (elapsed: number | undefined) => {
     if (elapsed === undefined) return;
     showNotification("pi", `Ready for input — ${formatDuration(elapsed)}`);
-    playChime();
   };
 
   pi.on("agent_start", async () => {

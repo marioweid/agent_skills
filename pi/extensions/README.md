@@ -1,13 +1,13 @@
 # pi extensions
 
 Vendored from [davis7dotsh/my-pi-setup](https://github.com/davis7dotsh/my-pi-setup)
-(MIT), plus local changes. `~/.pi/agent/extensions` is a symlink to this
-directory — pi resolves imports and `node_modules` from the real path, so the
-whole directory must be symlinked, not the individual extensions.
+(MIT), plus local changes. `~/.pi/agent/extensions` is a real directory of
+per-entry symlinks, so local-only extensions and the vendored dependencies stay
+outside the repository.
 
 ```sh
 cd ~/Sources/agent_skills/pi/extensions && npm install --ignore-scripts
-ln -s "$PWD" ~/.pi/agent/extensions
+ln -s "$PWD/usage" ~/.pi/agent/extensions/usage
 ```
 
 | extension | what it does |
@@ -21,7 +21,8 @@ ln -s "$PWD" ~/.pi/agent/extensions
 | `model-info` | Publishes model + token usage to the footer channel. |
 | `git-info` | Publishes branch / changed files / PR to the footer channel. `/lg`, `/pr`. |
 | `ui-customization` | Renders the header and footer from the two channels above. |
-| `notify` | Desktop notification + chime when a run settles. |
+| `notify` | Silent completion notification; quiet chime when `ask_user` needs input. |
+| `usage` | `/usage` shows current ChatGPT Codex 5-hour and weekly quotas. |
 | `shared` | Library code for the above; not an extension. |
 | `00-vertex-env.ts` | Machine-specific Vertex credentials. Gitignored. |
 
@@ -145,16 +146,20 @@ now bail when `ctx.mode !== "tui"`, matching what `ui-customization` already did
 
 ### notify
 
-Pi's bundled `examples/extensions/notify.ts` plus a chime, a 10s minimum
-duration, and one rule: the bell waits for the *whole* turn. A settled main
-thread is not enough, because delivering a subagent result wakes the agent for
-another run — so ringing on every settle fires mid-fan-out. `subagents`
-publishes its running count on the `subagents:activity` event channel, and the
-bell rings only when the main thread is idle *and* no child is still working.
-Adjust `MIN_RUN_MS` in `notify/index.ts`.
+Pi's bundled `examples/extensions/notify.ts` shows a silent desktop notification
+after a turn of at least 10 seconds. `subagents` publishes its running count on
+the `subagents:activity` event channel, so completion is not announced while a
+child is still working. Adjust `MIN_RUN_MS` in `notify/index.ts`.
 
-`ask_user` calls the same chime through `alertUser`, with no minimum duration —
-a question needs an answer whenever it is asked.
+Sound is reserved for `ask_user`, when Pi is blocked and needs input. macOS uses
+`afplay`; Linux plays the freedesktop completion sound through `pw-play` at 15%
+volume; other platforms use BEL.
+
+### Codex usage (`usage/`)
+
+`/usage` makes one on-demand read-only request through Pi's resolved
+`openai-codex` subscription authentication. It shows the 5-hour and weekly
+percentages and local reset times. It has no footer, cache, polling, or model turn.
 
 ## Not vendored
 

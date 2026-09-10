@@ -683,3 +683,17 @@ actually checked.
 [DISCOVERY] Counting tests per directory over-reports: directories without their own test
 script fall through to the root one and report its total. The honest figure is the root suite,
 178.
+
+## 2026-09-10T21:09Z — Codex quota command and attention-only Linux sound
+
+[OUTCOME] Added `/usage`, which makes one read-only authenticated request to Codex's
+`/wham/usage` endpoint and displays the live 5-hour and weekly percentages/reset times. The
+first parser rejected valid responses because `rate_limit` contains boolean metadata alongside
+the two window objects; live schema inspection exposed it, and the parser now ignores non-window
+fields. Verified through Pi's RPC production path: both current quota rows rendered without a
+model call.
+
+[DECISION] Completion notifications are silent. Sound is reserved for `ask_user`, where Pi is
+actually blocked on human input; Linux uses `pw-play` at 15% volume. This replaces the previous
+10-second completion chime, whose low-level settle timing felt random even when its tracker was
+technically correct. The full extension suite passes: 186 tests and `tsc --noEmit`.

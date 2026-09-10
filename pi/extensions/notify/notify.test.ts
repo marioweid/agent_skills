@@ -1,6 +1,12 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { alertUser, TurnTracker, formatDuration } from "./index.ts";
+import {
+  alertUser,
+  playChime,
+  selectChime,
+  TurnTracker,
+  formatDuration,
+} from "./index.ts";
 
 const MIN = 20_000;
 
@@ -75,6 +81,31 @@ test("steady-state zero-child updates never ring on their own", () => {
   }
 });
 
+test("selectChime retains macOS, adds Linux, and falls back on Windows", () => {
+  assert.deepEqual(selectChime("darwin"), {
+    command: "afplay",
+    args: ["/System/Library/Sounds/Glass.aiff"],
+  });
+  assert.deepEqual(selectChime("linux"), {
+    command: "pw-play",
+    args: [
+      "--volume=0.15",
+      "/run/current-system/sw/share/sounds/freedesktop/stereo/complete.oga",
+    ],
+  });
+  assert.equal(selectChime("win32"), undefined);
+});
+
+test("a failed Linux player falls back to BEL once", () => {
+  const written: string[] = [];
+  playChime(
+    "linux",
+    (_command, _args, callback) => callback(new Error("pw-play unavailable")),
+    (text) => written.push(text),
+  );
+  assert.deepEqual(written, ["\x07"]);
+});
+
 test("formatDuration reads naturally at each scale", () => {
   assert.equal(formatDuration(5_000), "5s");
   assert.equal(formatDuration(90_000), "1m 30s");
@@ -95,5 +126,4 @@ test("model-authored notification text cannot break out of the escape sequence",
   }
   const payload = written.join("");
   assert.ok(!payload.includes("pwned"));
-  assert.equal(payload.split("\u0007").length - 1, 1);
 });

@@ -41,6 +41,8 @@ or is it pi-only?
 
 ## Done
 
+- 2026-09-10 Added live Codex `/usage`; Linux sounds only when `ask_user` needs input
+  → .agent/plans/2026-09-10-pi-linux-notify-and-codex-usage.md
 - 2026-09-10 Directory-row overview (activity strip + journal) in the session-tree detail pane
   → .agent/plans/2026-09-10-recall-and-directory-overview.md
 - 2026-09-10 Evaluated and rejected `pi-hermes-memory`; built then deleted `/recall` — it reached
