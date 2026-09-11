@@ -31,11 +31,8 @@ function localDayNumber(ts: number): number {
  * a timestamp per `Turn` — `readConversation` already parses one when present —
  * and bucket messages instead of whole sessions.
  */
-export function activityCounts(
-  rows: readonly SessionRow[],
-  now: number,
-  days: number,
-): number[] {
+export function activityCounts(rows: readonly SessionRow[], now: number, days: number): number[] {
+  // oxlint-disable-next-line unicorn/no-new-array -- days deliberately sets the array length.
   const counts = new Array<number>(days).fill(0);
   const today = localDayNumber(now);
   for (const row of rows) {

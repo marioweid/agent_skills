@@ -8,6 +8,11 @@
     "pi-package"
   ],
   "license": "MIT",
+  "scripts": {
+    "test": "node --test pi/*.test.mjs && npm --prefix pi/extensions test",
+    "check": "node pi/check.mjs && npm --prefix pi/extensions run check",
+    "lint": "node pi/extensions/node_modules/oxlint/bin/oxlint --import-plugin --deny-warnings pi"
+  },
   "pi": {
     "skills": ["./skills"]
   }

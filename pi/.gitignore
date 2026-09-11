@@ -3,6 +3,9 @@
 !README.md
 !settings.json
 !check.mjs
+!session-usage.mjs
+!session-usage.test.mjs
+!harness-evaluation.md
 !npm/
 npm/*
 !npm/package.json

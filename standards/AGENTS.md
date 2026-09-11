@@ -4,31 +4,41 @@ Global instructions for all projects. Project files override these.
 
 ## How I work
 
-**Triage every request first.** Say which lane you are in, in one line, then go.
+**Own the task in the current session**, including multi-file features and unclear bugs.
+Keep the user's selected model. Read, implement, verify, and update docs yourself by default.
+File count is not a reason to delegate.
 
-| Lane | When | What you do |
-|---|---|---|
-| **Direct** | Answering, reading, one obvious edit, anything reversible in seconds | Just do it. No agents, no plan, no ceremony. |
-| **Recon** | "How does X work", "where is Y", "what would Z touch", or you need to read >5 files to answer | Spawn 2-4 `scout` subagents in parallel, one question each. Their briefs come back; the grep noise does not. |
-| **Build** | A feature, a refactor, a bug with unclear cause, anything spanning several files | The loop below. |
+1. Inspect the requested behavior and relevant code. Ask only about consequential decisions
+   the repository cannot resolve. Honor existing authorization.
+2. State a short plan and acceptance checks for substantial work. Write a design file only
+   for a durable decision or an explicit request.
+3. Implement, run relevant checks, fix failures, and inspect the final diff.
+4. Use independent review when requested, or for changed trust boundaries, migrations,
+   destructive behavior, public contracts, concurrency, or unresolved correctness risks.
+   Ordinary tested edits need self-review, not a compulsory reviewer.
+5. Report behavior, checks, and limitations. Update relevant docs and existing memory
+   yourself; no routine scribe. Preserve unfinished work.
 
-### The build loop
+### Delegation and review
 
-1. **Recon** — parallel `scout`s. Skip only if you already know the code cold.
-2. **Clarify** — turn the scouts' `unknowns` plus your own into **1-3 `ask_user` questions** and ask me. Subagents cannot ask; you are the only channel to the human, so never delegate this. Skip only when there is genuinely nothing to decide.
-3. **Plan** — one `architect`, given the goal, my answers, and the scout briefs. It writes `.agent/plans/<date>-<slug>.md`.
-4. **Gate** — stop and show me the plan **only if** its `gate: yes`, or it touches schemas, public APIs, architecture, security, data migrations, deletions of shared code, or anything destructive/external. Otherwise proceed and tell me you did.
-5. **Build** — one `implementer`, one at a time, ever. Parallel writers corrupt each other. You relay; you do not write the code yourself.
-6. **Verify** — the implementer runs the project's checks. Then one `reviewer` on the diff. `reject` → back to the implementer with the blockers. Two rounds maximum, then bring it to me with the open blockers.
-7. **Record** — one `scribe` updates `.agent/PLAN.md` and appends to `.agent/JOURNAL.md`.
-
-### Rules of the loop
-
-- **Reads parallelise, writes never.** Any number of scouts; exactly one implementer.
-- **Escalate, don't pre-route.** Start cheap. A failed cheap attempt is cheaper than a wrong expensive plan.
-- **Every child prompt is self-contained.** Children cannot see this conversation. Give paths, constraints, and the acceptance check — not "as discussed".
-- **Never fabricate a child's report.** If a subagent fails or returns nothing, say so.
-- **Keep `.agent/PLAN.md` current.** It is injected into every session. If work stops mid-flight, `## Now` must still describe reality.
+- A user request for no subagents overrides every workflow. A child does only its assigned
+  task, never parent orchestration or unrelated `.agent/PLAN.md` backlog.
+- Delegate only a bounded assignment whose benefit exceeds context and handoff cost.
+  Explain the benefit briefly. No automatic scout/architect chain.
+- Keep one implementation owner through repairs. Do not spawn a fresh implementer for
+  each finding or duplicate a child's investigation while it works.
+- Handoffs include goal, constraints, relevant paths, acceptance checks, and needed facts.
+  Reference files instead of pasting entire reports. Summaries are leads, not proof.
+- For review, supply the diff base/patch, changed and untracked paths, intended behavior,
+  check results, and risks. Capture starting worktree status to distinguish pre-existing
+  user edits. Stop edits during review.
+- One review pass, then at most one focused recheck of fixes and affected callers. The
+  owner repairs supported blockers. No taste-driven repair loops or unrelated scope.
+  Remaining blockers or essential missing evidence go to the user; never call them a pass.
+- Role model/effort is an explicit delegation choice. Compare whole-task consumption,
+  including parent, retries, and review; a cheaper model is not automatically cheaper work.
+- Never invent a child's report or treat an empty/error result as approval.
+- Keep `## Now` current when work stops. Avoid per-step memory churn.
 
 ## Philosophy
 

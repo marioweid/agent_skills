@@ -56,9 +56,15 @@ never "all tools" — a permission control must not fail open. Files that fail t
 load are reported on session start instead of silently vanishing from the
 roster.
 
-pi's `createAgentSession` has no `systemPrompt` option, so the role arrives as
-the head of the child's first user message rather than as a system prompt. For
-a headless one-shot child that is equivalent.
+The role arrives at the head of the child's first user message. The child also loads
+normal global and project instructions; the standards explicitly exempt children from
+parent orchestration. A user preamble does not have system-instruction priority.
+
+Pi child results are scoped to the current run. Empty responses, truncated answers, and
+unfinished tool turns fail instead of reusing earlier commentary or a previous verdict.
+The footer shows context occupancy, not cumulative token consumption. To measure entire
+runs, use `node pi/session-usage.mjs <session-files-or-directories>` from the repo root;
+include parent and child transcripts. See `pi/harness-evaluation.md` for interpretation.
 
 Tests: `node --test --experimental-strip-types subagents/agents.test.ts`
 

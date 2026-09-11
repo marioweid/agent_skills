@@ -9,7 +9,7 @@ or is it pi-only?
 
 - [ ] Proof-of-concept: repo-scoped loader for the two project skills
 - [ ] Wire a post-edit quality gate (lint/format on changed files via an extension event)
-- [ ] Collect triage misfires (build work done inline, or agents spawned for trivia) and sharpen the lane table from the real examples
+- [ ] Compare whole-task cost/latency and correctness of the single-owner workflow against the old pipeline using real parent/child transcripts; see pi/harness-evaluation.md
 - [ ] A/B the thinned skills on a real task — confirm output quality held after the 11.5k-line cut
 
 ## Next
@@ -40,6 +40,10 @@ or is it pi-only?
 - `.agent/` bootstrap for other repos (`/plan new <title>`)
 
 ## Done
+
+- 2026-09-11 Replaced mandatory delegation with single-owner work, scoped review, and
+  run-local result validation; added usage accounting and verified hooks. Real-task cost
+  comparison remains open → pi/harness-evaluation.md
 
 - 2026-09-10 Added live Codex `/usage`; Linux sounds only when `ask_user` needs input
   → .agent/plans/2026-09-10-pi-linux-notify-and-codex-usage.md

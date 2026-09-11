@@ -697,3 +697,20 @@ model call.
 actually blocked on human input; Linux uses `pw-play` at 15% volume. This replaces the previous
 10-second completion chime, whose low-level settle timing felt random even when its tracker was
 technically correct. The full extension suite passes: 186 tests and `tsc --noEmit`.
+
+## 2026-09-11T03:38Z — Single-owner workflow and verifiable harness results
+
+[DECISION] The current agent owns ordinary implementation, checks, review, and notes.
+Delegation is optional; independent review is for specific risks or an explicit request.
+Model and effort defaults remain unchanged so workflow measurements are not confounded
+with a model downgrade. Review gets exact diff scope and one focused recheck at most.
+
+[OUTCOME] This checkout fixes stale/empty/truncated Pi child results, aligns the Effect
+dependency graph, and resolves three baseline Windows test failures. Added local usage
+accounting and discoverable lint/snapshot/accounting hooks. Verification: 201 tests pass,
+types/lint/portability/hooks pass, and dependency audit reports zero vulnerabilities.
+
+[DISCOVERY] The available 32 local Pi transcripts contain no subagent runs. They cannot
+establish the recent reviewers' cost or compare Sol with the old pipeline. Evidence,
+limitations, activation steps, and a controlled comparison protocol are recorded in
+`pi/harness-evaluation.md`. No work-machine deployment or paid model evaluation was run.

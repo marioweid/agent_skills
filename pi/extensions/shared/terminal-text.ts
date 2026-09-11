@@ -9,21 +9,24 @@
  * styling on top.
  */
 
-// eslint-disable-next-line no-control-regex
 const OSC_PATTERN =
+  // oxlint-disable-next-line no-control-regex -- Match terminal control sequences to remove them.
   /(?:\u001b\]|\u009d)(?:[^\u0007\u001b\u009c]|\u001b(?!\\))*(?:\u0007|\u001b\\|\u009c)/g;
-// eslint-disable-next-line no-control-regex
+// oxlint-disable-next-line no-control-regex -- Match terminal control sequences to remove them.
 const CSI_PATTERN = /(?:\u001b\[|\u009b)[0-?]*[ -/]*[@-~]/g;
-// eslint-disable-next-line no-control-regex
 // Final byte is `[0-~]`, not `[@-~]`: the Fp range (0x30-0x3f) carries ESC 7 and
 // ESC 8, cursor save/restore, which would otherwise survive and let injected
 // text reposition output that is drawn after it.
+// oxlint-disable-next-line no-control-regex -- Match terminal control sequences to remove them.
 const ESCAPE_PATTERN = /\u001b(?:[()][0-2A-Z]|[ -/]*[0-~])/g;
 
 export function sanitizeTerminalText(text: string) {
-  return text
-    .replace(OSC_PATTERN, "")
-    .replace(CSI_PATTERN, "")
-    .replace(ESCAPE_PATTERN, "")
-    .replace(/[\u0000-\u0008\u000b-\u001f\u007f-\u009f]/g, "");
+  return (
+    text
+      .replace(OSC_PATTERN, "")
+      .replace(CSI_PATTERN, "")
+      .replace(ESCAPE_PATTERN, "")
+      // oxlint-disable-next-line no-control-regex -- Strip non-printing control characters.
+      .replace(/[\u0000-\u0008\u000b-\u001f\u007f-\u009f]/g, "")
+  );
 }

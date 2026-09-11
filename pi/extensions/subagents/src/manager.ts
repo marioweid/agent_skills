@@ -11,16 +11,7 @@
  * and issue fire-and-forget commands without touching the Effect runtime.
  */
 
-import {
-  Context,
-  Effect,
-  Exit,
-  Fiber,
-  Layer,
-  Result,
-  Scope,
-  Stream,
-} from "effect";
+import { Context, Effect, Exit, Fiber, Layer, Result, Scope, Stream } from "effect";
 import type { SubagentBackend, SubagentSession } from "./backend.ts";
 import { BackendRegistry } from "./backend.ts";
 import type {
@@ -34,12 +25,7 @@ import type {
   SubagentStatus,
   TranscriptItem,
 } from "./domain.ts";
-import {
-  BackendUnavailableError,
-  ConcurrencyLimitError,
-  SendError,
-  SpawnError,
-} from "./domain.ts";
+import { BackendUnavailableError, ConcurrencyLimitError, SendError, SpawnError } from "./domain.ts";
 
 export const MAX_RUNNING = 4;
 export const MAX_TRACKED = 64;
@@ -61,10 +47,7 @@ function boundedTranscriptText(text: string) {
 function appendTranscript(snapshot: MutableSnapshot, item: TranscriptItem) {
   snapshot.transcript.push(item);
   if (snapshot.transcript.length > MAX_TRANSCRIPT_ITEMS) {
-    snapshot.transcript.splice(
-      0,
-      snapshot.transcript.length - MAX_TRANSCRIPT_ITEMS,
-    );
+    snapshot.transcript.splice(0, snapshot.transcript.length - MAX_TRANSCRIPT_ITEMS);
   }
 }
 
@@ -115,9 +98,7 @@ export interface SubagentReadModel {
    * subagent_wait/cancel is collecting the result (so it must not also be
    * delivered as a follow-up message).
    */
-  setOnSettled(
-    hook: ((snap: SubagentSnapshot, consumed: boolean) => void) | undefined,
-  ): void;
+  setOnSettled(hook: ((snap: SubagentSnapshot, consumed: boolean) => void) | undefined): void;
 }
 
 // --- Service --------------------------------------------------------------------
@@ -133,24 +114,16 @@ export interface SubagentManagerShape {
   spawn(
     backend: BackendName,
     task: SpawnTask,
-  ): Effect.Effect<
-    SubagentSnapshot,
-    SpawnError | ConcurrencyLimitError | BackendUnavailableError
-  >;
+  ): Effect.Effect<SubagentSnapshot, SpawnError | ConcurrencyLimitError | BackendUnavailableError>;
   /**
    * Wait until all listed subagents are settled. Unknown ids are treated as
    * settled (the tool layer validates ids first). While waiting, settles for
    * these ids are marked "consumed". Interruption (tool abort) releases the
    * interest and leaves the subagents running.
    */
-  waitFor(
-    ids: ReadonlyArray<string>,
-    onPending?: (pending: string[]) => void,
-  ): Effect.Effect<void>;
+  waitFor(ids: ReadonlyArray<string>, onPending?: (pending: string[]) => void): Effect.Effect<void>;
   /** Cancel running subagents; resolves when they have settled. */
-  cancel(
-    ids: ReadonlyArray<string>,
-  ): Effect.Effect<ReadonlyArray<CancelResult>>;
+  cancel(ids: ReadonlyArray<string>): Effect.Effect<ReadonlyArray<CancelResult>>;
   send(id: string, text: string): Effect.Effect<void, SendError>;
   get(id: string): Effect.Effect<SubagentSnapshot | undefined>;
   readonly list: Effect.Effect<ReadonlyArray<SubagentSnapshot>>;
@@ -158,10 +131,9 @@ export interface SubagentManagerShape {
   readonly view: SubagentReadModel;
 }
 
-export class SubagentManager extends Context.Service<
-  SubagentManager,
-  SubagentManagerShape
->()("subagents/SubagentManager") {}
+export class SubagentManager extends Context.Service<SubagentManager, SubagentManagerShape>()(
+  "subagents/SubagentManager",
+) {}
 
 // --- Implementation --------------------------------------------------------------
 
@@ -181,13 +153,14 @@ const makeManager = Effect.gen(function* () {
   let modelCounter = 0;
   let reserved = 0;
   let disposed = false;
-  let onSettled:
-    ((snap: SubagentSnapshot, consumed: boolean) => void) | undefined;
+  let onSettled: ((snap: SubagentSnapshot, consumed: boolean) => void) | undefined;
 
   const notify = () => {
     const waiters = changeWaiters;
     changeWaiters = [];
     for (const waiter of waiters) waiter();
+    // A callback may subscribe/unsubscribe during dispatch; iterate a stable snapshot.
+    // oxlint-disable-next-line unicorn/no-useless-spread
     for (const listener of [...listeners]) {
       try {
         listener();
@@ -208,9 +181,8 @@ const makeManager = Effect.gen(function* () {
   });
 
   const runningCount = () =>
-    [...entries.values()].filter(
-      (e) => e.snapshot.status === "running" || e.restarting === true,
-    ).length;
+    [...entries.values()].filter((e) => e.snapshot.status === "running" || e.restarting === true)
+      .length;
 
   const addInterest = (ids: ReadonlyArray<string>) => {
     for (const id of ids) waitInterest.set(id, (waitInterest.get(id) ?? 0) + 1);
@@ -223,16 +195,12 @@ const makeManager = Effect.gen(function* () {
     }
   };
 
-  const closeEntryScope = (entry: Entry) =>
-    Scope.close(entry.scope, Exit.void).pipe(Effect.ignore);
+  const closeEntryScope = (entry: Entry) => Scope.close(entry.scope, Exit.void).pipe(Effect.ignore);
 
   const pruneSettled = () => {
     if (entries.size <= MAX_TRACKED) return;
     const candidates = [...entries.values()]
-      .filter(
-        (e) =>
-          e.snapshot.status !== "running" && !waitInterest.has(e.snapshot.id),
-      )
+      .filter((e) => e.snapshot.status !== "running" && !waitInterest.has(e.snapshot.id))
       .sort(
         (a, b) =>
           (a.snapshot.settledAt ?? a.snapshot.createdAt) -
@@ -262,18 +230,12 @@ const makeManager = Effect.gen(function* () {
         s.status = "error";
         s.errorText = bounded(outcome.errorText);
         // Never let a failed run report the previous run's successful output.
-        s.finalText = (outcome.partialText ?? "").slice(
-          0,
-          FINAL_TEXT_MAX_LENGTH,
-        );
+        s.finalText = (outcome.partialText ?? "").slice(0, FINAL_TEXT_MAX_LENGTH);
         break;
       case "Interrupted":
         s.status = "error";
         s.errorText = "Run was aborted";
-        s.finalText = (outcome.partialText ?? "").slice(
-          0,
-          FINAL_TEXT_MAX_LENGTH,
-        );
+        s.finalText = (outcome.partialText ?? "").slice(0, FINAL_TEXT_MAX_LENGTH);
         break;
     }
     s.liveAssistant = undefined;
@@ -315,15 +277,11 @@ const makeManager = Effect.gen(function* () {
           event.kind === "text"
             ? {
                 ...live,
-                text: (live.text + event.delta).slice(
-                  -LIVE_ASSISTANT_MAX_LENGTH,
-                ),
+                text: (live.text + event.delta).slice(-LIVE_ASSISTANT_MAX_LENGTH),
               }
             : {
                 ...live,
-                thinking: (live.thinking + event.delta).slice(
-                  -LIVE_ASSISTANT_MAX_LENGTH,
-                ),
+                thinking: (live.thinking + event.delta).slice(-LIVE_ASSISTANT_MAX_LENGTH),
               };
         break;
       }
@@ -348,9 +306,7 @@ const makeManager = Effect.gen(function* () {
         entry.liveToolMap.set(event.toolId, {
           toolId: event.toolId,
           name: event.name,
-          argsPreview: event.argsPreview
-            ? boundedTranscriptText(event.argsPreview)
-            : undefined,
+          argsPreview: event.argsPreview ? boundedTranscriptText(event.argsPreview) : undefined,
         });
         s.liveTools = [...entry.liveToolMap.values()];
         break;
@@ -403,22 +359,20 @@ const makeManager = Effect.gen(function* () {
     Effect.gen(function* () {
       // Reserve synchronously (before the first yield inside doSpawn) so
       // parallel tool calls cannot race past the global cap.
-      yield* Effect.suspend(
-        (): Effect.Effect<void, SpawnError | ConcurrencyLimitError> => {
-          if (disposed) {
-            return new SpawnError({
-              message: "Subagent manager is shutting down.",
-            });
-          }
-          if (runningCount() + reserved >= MAX_RUNNING) {
-            return new ConcurrencyLimitError({
-              message: `Max ${MAX_RUNNING} subagents can run concurrently. Wait for one to finish before spawning another.`,
-            });
-          }
-          reserved++;
-          return Effect.void;
-        },
-      );
+      yield* Effect.suspend((): Effect.Effect<void, SpawnError | ConcurrencyLimitError> => {
+        if (disposed) {
+          return new SpawnError({
+            message: "Subagent manager is shutting down.",
+          });
+        }
+        if (runningCount() + reserved >= MAX_RUNNING) {
+          return new ConcurrencyLimitError({
+            message: `Max ${MAX_RUNNING} subagents can run concurrently. Wait for one to finish before spawning another.`,
+          });
+        }
+        reserved++;
+        return Effect.void;
+      });
 
       /** Starts the backend session in `scope` and registers it as an entry. */
       const register = (backend: SubagentBackend, scope: Scope.Closeable) =>
@@ -515,18 +469,13 @@ const makeManager = Effect.gen(function* () {
       );
     });
 
-  const waitFor = (
-    ids: ReadonlyArray<string>,
-    onPending?: (pending: string[]) => void,
-  ) =>
+  const waitFor = (ids: ReadonlyArray<string>, onPending?: (pending: string[]) => void) =>
     Effect.suspend(() => {
       const unique = [...new Set(ids)];
       addInterest(unique);
       const loop = Effect.gen(function* () {
         while (true) {
-          const pending = unique.filter(
-            (id) => entries.get(id)?.snapshot.status === "running",
-          );
+          const pending = unique.filter((id) => entries.get(id)?.snapshot.status === "running");
           if (pending.length === 0) return;
           onPending?.(pending);
           yield* nextChange;
@@ -556,16 +505,12 @@ const makeManager = Effect.gen(function* () {
         // the race and report the wrong terminal reason.
         yield* Effect.sync(() => {
           settle(entry, { _tag: "Interrupted" });
-          entry.snapshot.errorText =
-            "Abort deadline exceeded; session was force-disposed";
+          entry.snapshot.errorText = "Abort deadline exceeded; session was force-disposed";
           notify();
         });
         // Bound the close like disposeAll does: a stuck backend finalizer
         // must not hang cancel after the run is already settled.
-        yield* closeEntryScope(entry).pipe(
-          Effect.timeout(STOP_TIMEOUT_MS),
-          Effect.ignore,
-        );
+        yield* closeEntryScope(entry).pipe(Effect.timeout(STOP_TIMEOUT_MS), Effect.ignore);
       }
     });
 
@@ -574,9 +519,7 @@ const makeManager = Effect.gen(function* () {
       const unique = [...new Set(ids)];
       const running = unique
         .map((id) => entries.get(id))
-        .filter(
-          (entry): entry is Entry => entry?.snapshot.status === "running",
-        );
+        .filter((entry): entry is Entry => entry?.snapshot.status === "running");
       const runningIds = running.map((entry) => entry.snapshot.id);
       // Mark consumed before interrupting so cancellation does not also
       // enqueue duplicate automatic result messages into the parent.
@@ -649,19 +592,14 @@ const makeManager = Effect.gen(function* () {
     entries.clear();
     yield* Effect.forEach(
       all,
-      (entry) =>
-        closeEntryScope(entry).pipe(
-          Effect.timeout(STOP_TIMEOUT_MS),
-          Effect.ignore,
-        ),
+      (entry) => closeEntryScope(entry).pipe(Effect.timeout(STOP_TIMEOUT_MS), Effect.ignore),
       { concurrency: "unbounded" },
     );
     // Pruning cleanups are detached; bound them like everything else so a
     // stuck backend finalizer cannot block runtime shutdown indefinitely.
     yield* Effect.forEach(
       [...cleanups],
-      (fiber) =>
-        Fiber.await(fiber).pipe(Effect.timeout(STOP_TIMEOUT_MS), Effect.ignore),
+      (fiber) => Fiber.await(fiber).pipe(Effect.timeout(STOP_TIMEOUT_MS), Effect.ignore),
       { concurrency: "unbounded" },
     ).pipe(Effect.ignore);
     yield* Effect.sync(() => notify());
@@ -695,8 +633,5 @@ const makeManager = Effect.gen(function* () {
   });
 });
 
-export const SubagentManagerLive: Layer.Layer<
-  SubagentManager,
-  never,
-  BackendRegistry
-> = Layer.effect(SubagentManager, makeManager);
+export const SubagentManagerLive: Layer.Layer<SubagentManager, never, BackendRegistry> =
+  Layer.effect(SubagentManager, makeManager);

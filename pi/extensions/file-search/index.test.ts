@@ -5,12 +5,7 @@ import { homedir } from "node:os";
 import { dirname, join } from "node:path";
 import { Effect, FileSystem } from "effect";
 import { HttpClientRequest, HttpClientResponse } from "effect/unstable/http";
-import {
-  buildFdArgs,
-  buildRgArgs,
-  FD_DEFAULT_LIMIT,
-  normalizeSearchPath,
-} from "./src/args.ts";
+import { buildFdArgs, buildRgArgs, FD_DEFAULT_LIMIT, normalizeSearchPath } from "./src/args.ts";
 import {
   FD_INTEL_DARWIN_VERSION,
   InstallError,
@@ -25,11 +20,7 @@ import {
 } from "./src/binaries.ts";
 import { formatCapturedOutput } from "./src/output.ts";
 import { executeSearchProcess } from "./src/process.ts";
-import {
-  classifySearchExit,
-  installNotifications,
-  makeBinaryInitializers,
-} from "./index.ts";
+import { classifySearchExit, installNotifications, makeBinaryInitializers } from "./index.ts";
 
 /** `node --test` equivalent of `@effect/vitest`'s `it.effect`. */
 function effectTest<A, E>(name: string, body: () => Effect.Effect<A, E>) {
@@ -141,7 +132,7 @@ test("rg args: all options are translated", () => {
 test("rg args: case_sensitive false forces ignore-case", () => {
   const args = buildRgArgs({ pattern: "x", case_sensitive: false });
   assert.ok(args.includes("--ignore-case"));
-  assert.ok(!(args.includes("--smart-case")));
+  assert.ok(!args.includes("--smart-case"));
 });
 
 test("path normalization strips leading @ and expands ~", () => {
@@ -166,9 +157,7 @@ function makeEnv(options: {
     probe: (command) =>
       Effect.sync(() => {
         probes.push(command);
-        return (
-          (options.available ?? []).includes(command) || installed.has(command)
-        );
+        return (options.available ?? []).includes(command) || installed.has(command);
       }),
     install: (asset, destination) => {
       if (options.installShouldFail) {
@@ -187,12 +176,7 @@ const darwinArm = { os: "darwin", arch: "arm64" } as const;
 effectTest("binary resolution: system fd wins and nothing is installed", () =>
   Effect.gen(function* () {
     const env = makeEnv({ available: ["fd"] });
-    const resolved = yield* resolveBinary(
-      TOOL_SPECS.fd,
-      "/repo/bin",
-      darwinArm,
-      env,
-    );
+    const resolved = yield* resolveBinary(TOOL_SPECS.fd, "/repo/bin", darwinArm, env);
 
     assert.deepEqual(resolved, {
       tool: "fd",
@@ -206,12 +190,7 @@ effectTest("binary resolution: system fd wins and nothing is installed", () =>
 effectTest("binary resolution: fdfind is accepted as a system fd", () =>
   Effect.gen(function* () {
     const env = makeEnv({ available: ["fdfind"] });
-    const resolved = yield* resolveBinary(
-      TOOL_SPECS.fd,
-      "/repo/bin",
-      darwinArm,
-      env,
-    );
+    const resolved = yield* resolveBinary(TOOL_SPECS.fd, "/repo/bin", darwinArm, env);
 
     assert.deepEqual(resolved, {
       tool: "fd",
@@ -224,74 +203,50 @@ effectTest("binary resolution: fdfind is accepted as a system fd", () =>
 
 effectTest("binary resolution: existing bin fallback is used silently", () =>
   Effect.gen(function* () {
-    const env = makeEnv({ available: ["/repo/bin/rg"] });
-    const resolved = yield* resolveBinary(
-      TOOL_SPECS.rg,
-      "/repo/bin",
-      darwinArm,
-      env,
-    );
+    const env = makeEnv({ available: [join("/repo/bin", "rg")] });
+    const resolved = yield* resolveBinary(TOOL_SPECS.rg, "/repo/bin", darwinArm, env);
 
     assert.deepEqual(resolved, {
       tool: "rg",
-      command: "/repo/bin/rg",
+      command: join("/repo/bin", "rg"),
       source: "bundled",
     });
     assert.equal(env.installs.length, 0);
   }),
 );
 
-effectTest(
-  "binary resolution: missing everywhere triggers exactly one install",
-  () =>
-    Effect.gen(function* () {
-      const env = makeEnv({ available: [] });
-      const resolved = yield* resolveBinary(
-        TOOL_SPECS.rg,
-        "/repo/bin",
-        darwinArm,
-        env,
-      );
+effectTest("binary resolution: missing everywhere triggers exactly one install", () =>
+  Effect.gen(function* () {
+    const env = makeEnv({ available: [] });
+    const resolved = yield* resolveBinary(TOOL_SPECS.rg, "/repo/bin", darwinArm, env);
 
-      assert.equal(resolved.source, "installed");
-      assert.equal(resolved.command, "/repo/bin/rg");
-      assert.equal(env.installs.length, 1);
-      assert.match(
-        env.installs[0].url,
-        /^https:\/\/github\.com\/BurntSushi\/ripgrep\//,
-      );
-    }),
+    assert.equal(resolved.source, "installed");
+    assert.equal(resolved.command, join("/repo/bin", "rg"));
+    assert.equal(env.installs.length, 1);
+    assert.match(env.installs[0].url, /^https:\/\/github\.com\/BurntSushi\/ripgrep\//);
+  }),
 );
 
 effectTest("binary resolution: install failure surfaces a typed error", () =>
   Effect.gen(function* () {
     const env = makeEnv({ available: [], installShouldFail: true });
-    const error = yield* Effect.flip(
-      resolveBinary(TOOL_SPECS.fd, "/repo/bin", darwinArm, env),
-    );
+    const error = yield* Effect.flip(resolveBinary(TOOL_SPECS.fd, "/repo/bin", darwinArm, env));
 
     assert.ok(error instanceof InstallError);
     assert.equal(error.message, "network down");
   }),
 );
 
-effectTest(
-  "binary resolution: unsupported platform fails without installing",
-  () =>
-    Effect.gen(function* () {
-      const env = makeEnv({ available: [] });
-      const error = yield* Effect.flip(
-        resolveBinary(
-          TOOL_SPECS.fd,
-          "/repo/bin",
-          { os: "linux", arch: "s390x" },
-          env,
-        ),
-      );
+effectTest("binary resolution: unsupported platform fails without installing", () =>
+  Effect.gen(function* () {
+    const env = makeEnv({ available: [] });
+    const error = yield* Effect.flip(
+      resolveBinary(TOOL_SPECS.fd, "/repo/bin", { os: "linux", arch: "s390x" }, env),
+    );
 
-      assert.ok(error instanceof UnsupportedPlatformError);
-      assert.equal(env.installs.length, 0);
-    }),
+    assert.ok(error instanceof UnsupportedPlatformError);
+    assert.equal(env.installs.length, 0);
+  }),
 );
 
 effectTest("binary resolution: one failed tool does not disable the other", () =>
@@ -334,33 +289,22 @@ test("Intel macOS uses the latest fd release that publishes that target", () => 
   assert.equal(asset?.version, FD_INTEL_DARWIN_VERSION);
 });
 
-effectTest(
-  "bounded downloads reject oversized declared and streamed bodies",
-  () =>
-    Effect.gen(function* () {
-      const request = HttpClientRequest.get(
-        "https://example.com/archive.tar.gz",
-      );
-      const declared = HttpClientResponse.fromWeb(
-        request,
-        new Response("small", {
-          headers: { "content-length": "100" },
-        }),
-      );
-      const declaredError = yield* Effect.flip(
-        readBoundedResponse(declared, 10),
-      );
-      assert.match(declaredError.message, /size limit/);
+effectTest("bounded downloads reject oversized declared and streamed bodies", () =>
+  Effect.gen(function* () {
+    const request = HttpClientRequest.get("https://example.com/archive.tar.gz");
+    const declared = HttpClientResponse.fromWeb(
+      request,
+      new Response("small", {
+        headers: { "content-length": "100" },
+      }),
+    );
+    const declaredError = yield* Effect.flip(readBoundedResponse(declared, 10));
+    assert.match(declaredError.message, /size limit/);
 
-      const streamed = HttpClientResponse.fromWeb(
-        request,
-        new Response("this body is too large"),
-      );
-      const streamedError = yield* Effect.flip(
-        readBoundedResponse(streamed, 5),
-      );
-      assert.match(streamedError.message, /size limit/);
-    }),
+    const streamed = HttpClientResponse.fromWeb(request, new Response("this body is too large"));
+    const streamedError = yield* Effect.flip(readBoundedResponse(streamed, 5));
+    assert.match(streamedError.message, /size limit/);
+  }),
 );
 
 // --- notification policy ----------------------------------------------------

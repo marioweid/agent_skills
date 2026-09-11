@@ -1,0 +1,20 @@
+repos:
+  - repo: local
+    hooks:
+      - id: pi-snapshot
+        name: Validate portable Pi snapshot
+        entry: node pi/check.mjs
+        language: system
+        pass_filenames: false
+        files: ^(pi/|skills/|standards/|README\.md|package\.json)
+      - id: pi-lint
+        name: Lint Pi JavaScript and TypeScript
+        entry: node pi/extensions/node_modules/oxlint/bin/oxlint --import-plugin --deny-warnings
+        language: system
+        files: ^pi/.*\.(ts|mjs)$
+      - id: pi-usage-tests
+        name: Verify session usage accounting
+        entry: node --test pi/session-usage.test.mjs
+        language: system
+        pass_filenames: false
+        files: ^pi/session-usage.*\.mjs$

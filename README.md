@@ -29,28 +29,34 @@ Each layer owns exactly one type of information, preventing contradictory rules:
 2. **`pi/agents/*.md`** — agent behavior and role-specific rules (pi-only)
 3. **`skills/*/SKILL.md`** — only non-derivable facts: version-specific config, supply-chain pins, post-cutoff library surfaces
 
-## The build loop
+## Working loop
 
-The main thread triages every request into one of three lanes (see
-`standards/AGENTS.md`):
+The current agent owns the task: inspect → implement → check → self-review → report.
+This includes multi-file changes. `/build <task>` follows the same policy; it does not
+force a pipeline. The current model stays selected, so working directly in Sol remains
+direct work in Sol.
 
-- **Direct** — answer, read, one obvious edit. No agents.
-- **Recon** — 2-4 read-only `scout`s in parallel; only their briefs come back.
-- **Build** — recon → clarifying questions → `architect` writes a plan → risk gate →
-  one `implementer` → `reviewer` on the diff → `scribe` records it.
+Delegation is optional for a bounded assignment with a concrete benefit. Independent
+review is for user requests, changed trust boundaries, migrations, destructive behavior,
+public contracts, concurrency, or specific unresolved correctness risks. The owner supplies
+the exact diff scope and check results and fixes supported findings. At most one focused
+recheck follows. Routine docs and memory updates stay with the owner.
 
-Reads parallelise; exactly one agent ever writes. `/build <task>` runs the loop
-explicitly; otherwise the main thread enters it on its own for anything non-trivial.
+| Optional role | Tools | Returns |
+|---|---|---|
+| `scout` | inspection | `## BRIEF` — bounded answer, file map, unknowns |
+| `architect` | inspection + write plan | `## DESIGN BRIEF` — decision, risk, gate |
+| `implementer` | inspection + edit/write | `## CHANGE SUMMARY` — files, checks, deviations |
+| `reviewer` | inspection | `## VERDICT` — pass/reject/incomplete, evidence, coverage |
+| `scribe` | inspection + edit/write | `## RECORD` — substantial documentation work |
 
-| Role | Model tier | Tools | Returns |
-|---|---|---|---|
-| `scout` | haiku | read-only | `## BRIEF` — answer, file map, unknowns |
-| `architect` | opus | read + write plan | `## DESIGN BRIEF` — plan file, risk, gate |
-| `implementer` | sonnet | read + edit/write | `## CHANGE SUMMARY` — files, checks, deviations |
-| `reviewer` | opus | read-only | `## VERDICT` — blockers, should-fix, verified |
-| `scribe` | haiku | read + edit/write | `## RECORD` — plan, journal, docs |
+Role model assignments are listed below. Inspection roles still have Bash: their no-write
+rule is a behavioral instruction, not an operating-system sandbox. Children cannot delegate
+or call `ask_user`. A user request for no subagents takes precedence over the workflow.
 
-Subagents cannot call `ask_user`: the main thread is the only channel to the human.
+The [harness evaluation](pi/harness-evaluation.md) records the audit evidence, limitations,
+and how to compare whole-task usage. No measured model-quality or token-saving claim is
+implied by fewer mandatory stages.
 
 ## Per-repo memory
 
@@ -96,12 +102,12 @@ ln -sfn "$REPO/pi/extensions/<name>" ~/.pi/agent/extensions/<name>
 ## Models, and machines that use a different provider
 
 This repo is the **Codex** setup. `pi/settings.json` and the five `pi/agents/*.md`
-role files both name `openai-codex` models, and `pi/check.mjs` holds them there.
+role files both name `openai-codex` models. `pi/check.mjs` validates their structure.
 The roles use three tiers:
 
 | Role | Model | Why |
 |---|---|---|
-| `scout`, `scribe` | `gpt-5.6-luna` | cheapest; they read and summarise |
+| `scout`, `scribe` | `gpt-5.6-luna` | bounded lookup and documentation assignments |
 | `implementer` | `gpt-5.6-terra` | the default working tier |
 | `architect`, `reviewer` | `gpt-5.6-sol` | the judgement calls |
 
@@ -109,12 +115,9 @@ A machine on another provider does **not** edit these files. `~/.pi/agent/agents
 is a real directory, linked per file rather than as a whole, so that machine just
 keeps its own copy of any role it needs to change:
 
-```sh
-cp "$REPO/pi/agents/reviewer.md" ~/.pi/agent/agents/reviewer.md   # then edit model:
-```
-
-The copy replaces the symlink and stays local. Nothing about the other machine's
-provider, project or credentials belongs in this repository.
+Inspect and back up the local role first. If it is a symlink, unlink that entry before
+copying the repo role into its place and editing `model:`. Copying onto a symlink would
+overwrite its source. Keep machine-specific providers and credentials outside this repo.
 
 ## Setup
 

@@ -56,8 +56,14 @@ export type ViewOutcome =
 
 /** `/Users/me/src/app` → `~/src/app`, with long paths elided from the left. */
 export function formatCwd(cwd: string, max = 34): string {
-  const home = homedir();
-  const short = cwd === home ? "~" : cwd.startsWith(`${home}/`) ? `~${cwd.slice(home.length)}` : cwd;
+  const home = homedir().replaceAll("\\", "/");
+  const display = cwd.replaceAll("\\", "/");
+  const short =
+    display === home
+      ? "~"
+      : display.startsWith(`${home}/`)
+        ? `~${display.slice(home.length)}`
+        : display;
   if (short.length <= max) return short;
   return `…${short.slice(short.length - max + 1)}`;
 }
@@ -674,11 +680,11 @@ class SessionTreeView implements Component, Focusable {
         this.tickError
           ? theme.fg("error", `  ${this.tickError}`)
           : this.notice
-          ? theme.fg("warning", `  ${this.notice}`)
-          : theme.fg(
-              "dim",
-              "  ↑↓ move · →/⏎ enter · ← back · ⇟⇞ read · n new session · dd delete · esc close",
-            ),
+            ? theme.fg("warning", `  ${this.notice}`)
+            : theme.fg(
+                "dim",
+                "  ↑↓ move · →/⏎ enter · ← back · ⇟⇞ read · n new session · dd delete · esc close",
+              ),
         width,
       ),
     );
@@ -701,9 +707,10 @@ class SessionTreeView implements Component, Focusable {
       theme.fg("text", truncateToWidth(pending.label, inner)),
       theme.fg("muted", truncateToWidth(pending.path, inner)),
       "",
-      ...wrapTextWithAnsi("The transcript and its artifacts are removed from disk. This cannot be undone.", inner).map(
-        (line) => theme.fg("muted", line),
-      ),
+      ...wrapTextWithAnsi(
+        "The transcript and its artifacts are removed from disk. This cannot be undone.",
+        inner,
+      ).map((line) => theme.fg("muted", line)),
       "",
       theme.fg("dim", "d / ⏎ delete · n / esc cancel"),
     ];
@@ -732,7 +739,10 @@ class SessionTreeView implements Component, Focusable {
     if (visible.length === 0) return [theme.fg("dim", " No pi sessions found.")];
 
     // Scroll so the cursor stays on screen without jumping around.
-    const index = Math.max(0, visible.findIndex((node) => node.id === current?.id));
+    const index = Math.max(
+      0,
+      visible.findIndex((node) => node.id === current?.id),
+    );
     const start =
       visible.length <= height
         ? 0
@@ -776,11 +786,7 @@ class SessionTreeView implements Component, Focusable {
    * 54ms for a 336-message session, then 1ms from the cache. Render per page
    * if selecting a row ever feels slow.
    */
-  private detailBody(
-    node: TreeNode | undefined,
-    width: number,
-    now: number,
-  ): ConversationLine[] {
+  private detailBody(node: TreeNode | undefined, width: number, now: number): ConversationLine[] {
     const journal = node?.kind === "directory" ? readJournal(node.cwd) : [];
     const head: ConversationLine[] = detailLines(
       node,
@@ -815,16 +821,14 @@ class SessionTreeView implements Component, Focusable {
     const body = this.detailBody(node, width, now);
     this.detailOverflow = Math.max(0, body.length - height);
     const start = Math.min(this.detailScroll, this.detailOverflow);
-    return body
-      .slice(start, start + height)
-      .map(({ role, text, styled }, i) => {
-        if (styled) return truncateToWidth(text, width);
-        if (role === "user") return truncateToWidth(theme.fg("accent", text), width);
-        return truncateToWidth(
-          start === 0 && i === 0 ? theme.bold(theme.fg("text", text)) : theme.fg("muted", text),
-          width,
-        );
-      });
+    return body.slice(start, start + height).map(({ role, text, styled }, i) => {
+      if (styled) return truncateToWidth(text, width);
+      if (role === "user") return truncateToWidth(theme.fg("accent", text), width);
+      return truncateToWidth(
+        start === 0 && i === 0 ? theme.bold(theme.fg("text", text)) : theme.fg("muted", text),
+        width,
+      );
+    });
   }
 
   invalidate(): void {}

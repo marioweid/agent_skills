@@ -28,6 +28,7 @@ import type { Cause, Scope } from "effect";
 import { Effect, Queue, Stream } from "effect";
 import type { SubagentBackend, SubagentSession } from "../backend.ts";
 import type {
+  RunOutcome,
   SpawnTask,
   SubagentEvent,
   SubagentMeta,
@@ -150,14 +151,11 @@ async function shutdownAndDisposeChildSession(session: AgentSession) {
 
 function messageRole(msg: unknown): Message["role"] | undefined {
   const role = (msg as { role?: string } | undefined)?.role;
-  if (role === "user" || role === "assistant" || role === "toolResult")
-    return role;
+  if (role === "user" || role === "assistant" || role === "toolResult") return role;
   return undefined;
 }
 
-function lastAssistantMessage(
-  session: AgentSession,
-): AssistantMessage | undefined {
+function lastAssistantMessage(session: AgentSession): AssistantMessage | undefined {
   const messages = session.messages;
   for (let i = messages.length - 1; i >= 0; i--) {
     const msg = messages[i];
@@ -166,20 +164,42 @@ function lastAssistantMessage(
   return undefined;
 }
 
-/** Final assistant text output (last assistant message with text), v1 semantics. */
-function finalOutput(session: AgentSession): string {
-  const messages = session.messages;
-  for (let i = messages.length - 1; i >= 0; i--) {
-    const msg = messages[i];
-    if (messageRole(msg) !== "assistant") continue;
-    const text = (msg as AssistantMessage).content
+/** Run-local output survives context compaction without reusing an older verdict. */
+export class PiRunOutput {
+  lastMessage: AssistantMessage | undefined;
+
+  reset() {
+    this.lastMessage = undefined;
+  }
+
+  get text(): string {
+    return (this.lastMessage?.content ?? [])
       .filter((part) => part.type === "text")
       .map((part) => part.text)
       .join("\n")
       .trim();
-    if (text) return text;
   }
-  return "";
+
+  outcome(runError?: string): RunOutcome {
+    const last = this.lastMessage;
+    const partialText = this.text || undefined;
+    if (last?.stopReason === "aborted") return { _tag: "Interrupted", partialText };
+    const errorText =
+      runError ?? (last?.stopReason === "error" ? (last.errorMessage ?? "Run failed") : undefined);
+    if (errorText !== undefined) {
+      return { _tag: "Failed", errorText: boundedError(errorText), partialText };
+    }
+    if (last && last.stopReason !== "stop") {
+      return {
+        _tag: "Failed",
+        partialText,
+        errorText: `Subagent stopped with ${last.stopReason}; its answer is incomplete.`,
+      };
+    }
+    return partialText
+      ? { _tag: "Completed", finalText: partialText }
+      : { _tag: "Failed", errorText: "Subagent returned no final text. No verdict is available." };
+  }
 }
 
 function safeJson(value: unknown): string | undefined {
@@ -242,9 +262,7 @@ function userText(msg: Message): string {
   return content
     .filter(
       (part): part is { type: "text"; text: string } =>
-        !!part &&
-        typeof part === "object" &&
-        (part as { type?: unknown }).type === "text",
+        !!part && typeof part === "object" && (part as { type?: unknown }).type === "text",
     )
     .map((part) => part.text)
     .join("\n");
@@ -253,15 +271,10 @@ function userText(msg: Message): string {
 // --- The session ------------------------------------------------------------------
 
 function boundedError(error: unknown) {
-  return (error instanceof Error ? error.message : String(error)).slice(
-    0,
-    4096,
-  );
+  return (error instanceof Error ? error.message : String(error)).slice(0, 4096);
 }
 
-const makePiSession = (
-  task: SpawnTask,
-): Effect.Effect<SubagentSession, SpawnError, Scope.Scope> =>
+const makePiSession = (task: SpawnTask): Effect.Effect<SubagentSession, SpawnError, Scope.Scope> =>
   Effect.gen(function* () {
     const registry = task.parent.modelRegistry;
     if (!registry) {
@@ -271,13 +284,13 @@ const makePiSession = (
     }
 
     const model = yield* Effect.try({
-      try: () =>
-        resolvePiModel(registry, task.model, task.parent.inheritedModel),
+      try: () => resolvePiModel(registry, task.model, task.parent.inheritedModel),
       catch: (error) => new SpawnError({ message: boundedError(error) }),
     });
     // pi's thinking levels ARE the shared reasoning-effort scale.
-    const thinkingLevel = (task.reasoningEffort ??
-      task.parent.inheritedThinkingLevel) as ThinkingLevel | undefined;
+    const thinkingLevel = (task.reasoningEffort ?? task.parent.inheritedThinkingLevel) as
+      | ThinkingLevel
+      | undefined;
 
     const session = yield* Effect.tryPromise({
       try: async () => {
@@ -309,6 +322,7 @@ const makePiSession = (
       catch: (error) => new SpawnError({ message: boundedError(error) }),
     });
 
+    const runOutput = new PiRunOutput();
     const state = {
       closed: false,
       /** prompt() rejection for the active run; folded into RunSettled. */
@@ -332,16 +346,12 @@ const makePiSession = (
       if (!last) return sessionModel;
       if (
         sessionModel &&
-        (last.provider !== sessionModel.provider ||
-          last.model !== sessionModel.id)
+        (last.provider !== sessionModel.provider || last.model !== sessionModel.id)
       ) {
         // The session changed models after this assistant response.
         return sessionModel;
       }
-      return (
-        registry.find(last.provider, last.responseModel ?? last.model) ??
-        sessionModel
-      );
+      return registry.find(last.provider, last.responseModel ?? last.model) ?? sessionModel;
     };
 
     const currentMeta = (): SubagentMeta => {
@@ -366,34 +376,9 @@ const makePiSession = (
     const settle = () => {
       if (state.settled) return;
       state.settled = true;
-      const last = lastAssistantMessage(session);
-      const partialText = finalOutput(session) || undefined;
-      if (last?.stopReason === "aborted") {
-        emit({
-          _tag: "RunSettled",
-          outcome: { _tag: "Interrupted", partialText },
-        });
-        return;
-      }
-      const errorText =
-        state.runError ??
-        (last?.stopReason === "error"
-          ? (last.errorMessage ?? "Run failed")
-          : undefined);
-      if (errorText !== undefined) {
-        emit({
-          _tag: "RunSettled",
-          outcome: {
-            _tag: "Failed",
-            errorText: boundedError(errorText),
-            partialText,
-          },
-        });
-        return;
-      }
       emit({
         _tag: "RunSettled",
-        outcome: { _tag: "Completed", finalText: finalOutput(session) },
+        outcome: runOutput.outcome(state.runError),
       });
     };
 
@@ -429,6 +414,7 @@ const makePiSession = (
             const text = userText(event.message as Message);
             if (text.trim()) emit({ _tag: "UserMessage", text });
           } else if (role === "assistant") {
+            runOutput.lastMessage = event.message as AssistantMessage;
             emit({
               _tag: "AssistantMessage",
               parts: assistantParts(event.message as AssistantMessage),
@@ -502,6 +488,7 @@ const makePiSession = (
 
     /** Start a fresh run (v1 manager.run): fire-and-forget, errors -> events. */
     const startRun = (text: string) => {
+      runOutput.reset();
       state.runError = undefined;
       state.settled = false;
       emit({ _tag: "RunStarted" });
@@ -515,9 +502,7 @@ const makePiSession = (
 
     // Session naming is best-effort.
     yield* Effect.try(() =>
-      session.sessionManager.appendSessionInfo(
-        `subagent: ${task.title}`,
-      ),
+      session.sessionManager.appendSessionInfo(`subagent: ${task.title}`),
     ).pipe(Effect.ignore);
 
     emit({ _tag: "MetaChanged", meta: currentMeta() });

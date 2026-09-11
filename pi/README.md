@@ -107,8 +107,9 @@ done
 link_if_absent "$REPO/pi/prompts" "$HOME/.pi/agent/prompts"
 ```
 
-`pi/agents/*.md` are the five build-loop roles and `pi/prompts/build.md` is the
-command that runs them. The roles pin `openai-codex` model ids; `build.md` pins
+`pi/agents/*.md` are five optional delegation roles. `pi/prompts/build.md` implements
+in the current session by default, with focused delegation and risk-based review.
+The roles pin `openai-codex` model ids; `build.md` pins
 no provider. `~/.pi/agent/agents/` is linked per file rather than as a whole
 directory so a machine on another provider can replace individual entries with
 local copies instead of editing the repo — see "Models, and machines that use a

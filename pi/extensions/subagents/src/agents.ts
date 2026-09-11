@@ -5,9 +5,9 @@
  * tools) followed by the prompt body. `subagent_spawn(agent: "critic", ...)`
  * prepends that body to the task and applies the file's model/effort/tools.
  *
- * pi's `createAgentSession` has no `systemPrompt` option, so the role arrives
- * as the head of the child's first user message. For a headless one-shot child
- * that is equivalent in practice.
+ * The role arrives as the head of the child's first user message. Global and
+ * project system instructions still apply; the standards exempt children from
+ * parent orchestration explicitly.
  */
 
 import fs from "node:fs";
@@ -79,7 +79,11 @@ export function parseFrontmatter(frontmatter: string) {
     const item = /^\s+-\s*(.*)$/.exec(line);
     if (item && currentKey) {
       const value = unquote(item[1] ?? "");
-      if (value) lists.get(currentKey)?.push(value) ?? lists.set(currentKey, [value]);
+      if (value) {
+        const values = lists.get(currentKey) ?? [];
+        values.push(value);
+        lists.set(currentKey, values);
+      }
       continue;
     }
     if (/^\s/.test(line)) continue;
@@ -95,7 +99,10 @@ export function parseFrontmatter(frontmatter: string) {
 }
 
 function unquote(value: string) {
-  return value.trim().replace(/^["']|["']$/g, "").trim();
+  return value
+    .trim()
+    .replace(/^["']|["']$/g, "")
+    .trim();
 }
 
 /** Tool names must match what pi registers; a typo would silently disable a tool. */
@@ -120,9 +127,7 @@ function parseTools(
   }
   const invalid = tools.filter((tool) => !TOOL_NAME.test(tool));
   if (invalid.length > 0) {
-    throw new RoleError(
-      `tool names must be lowercase pi tool ids, got ${invalid.join(", ")}`,
-    );
+    throw new RoleError(`tool names must be lowercase pi tool ids, got ${invalid.join(", ")}`);
   }
   return tools;
 }
@@ -133,17 +138,13 @@ function parseRole(file: string): AgentRole {
 
   const name = scalars.get("name") ?? path.basename(file, ".md");
   if (!/^[a-z0-9][a-z0-9-]*$/i.test(name)) {
-    throw new RoleError(
-      `"${name}" is not a usable role name (letters, digits and dashes only)`,
-    );
+    throw new RoleError(`"${name}" is not a usable role name (letters, digits and dashes only)`);
   }
   if (!body) throw new RoleError("no prompt body below the frontmatter");
 
   const thinking = scalars.get("thinking");
   if (thinking && !(REASONING_EFFORTS as readonly string[]).includes(thinking)) {
-    throw new RoleError(
-      `thinking: ${thinking} is not one of ${REASONING_EFFORTS.join(", ")}`,
-    );
+    throw new RoleError(`thinking: ${thinking} is not one of ${REASONING_EFFORTS.join(", ")}`);
   }
 
   return {

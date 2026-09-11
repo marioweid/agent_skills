@@ -1,16 +1,12 @@
 import { homedir } from "node:os";
 import { relative } from "node:path";
+import { sanitizeTerminalText } from "../shared/terminal-text.ts";
 import type {
   ExtensionAPI,
   ExtensionContext,
   ReadonlyFooterDataProvider,
 } from "@earendil-works/pi-coding-agent";
-import {
-  getCapabilities,
-  hyperlink,
-  truncateToWidth,
-  visibleWidth,
-} from "@earendil-works/pi-tui";
+import { getCapabilities, hyperlink, truncateToWidth, visibleWidth } from "@earendil-works/pi-tui";
 import {
   emptyGitInfoState,
   emptyModelInfoState,
@@ -51,21 +47,11 @@ const TITLE_LINES = [
   "  ╚═╝      ╚═╝ ",
 ];
 const ANSI_PATTERN =
+  // oxlint-disable-next-line no-control-regex -- Match ANSI escapes to measure visible text.
   /[\u001B\u009B][[\]()#;?]*(?:(?:(?:[a-zA-Z\d]*(?:;[a-zA-Z\d]*)*)?\u0007)|(?:(?:\d{1,4}(?:;\d{0,4})*)?[\dA-PR-TZcf-nq-uy=><~]))/g;
-// eslint-disable-next-line no-control-regex
-const OSC_PATTERN =
-  /(?:\u001b\]|\u009d)(?:[^\u0007\u001b\u009c]|\u001b(?!\\))*(?:\u0007|\u001b\\|\u009c)/g;
-// eslint-disable-next-line no-control-regex
-const CSI_PATTERN = /(?:\u001b\[|\u009b)[0-?]*[ -/]*[@-~]/g;
-// eslint-disable-next-line no-control-regex
-const ESCAPE_PATTERN = /\u001b(?:[()][0-2A-Z]|[ -/]*[@-~])/g;
 
 function sanitizeTerminalLabel(text: string) {
-  return text
-    .replace(OSC_PATTERN, "")
-    .replace(CSI_PATTERN, "")
-    .replace(ESCAPE_PATTERN, "")
-    .replace(/[\u0000-\u001f\u007f-\u009f]/g, "");
+  return sanitizeTerminalText(text).replace(/[\t\n]/g, "");
 }
 
 function mix(a: number, b: number, amount: number) {
@@ -98,9 +84,7 @@ function gradientText(text: string, phase: number) {
 
   return characters
     .map((character, index) =>
-      character === " "
-        ? character
-        : foreground(sampleGradient(index / span + phase), character),
+      character === " " ? character : foreground(sampleGradient(index / span + phase), character),
     )
     .join("");
 }
@@ -131,8 +115,7 @@ function hideThemesSection(component: RenderableNode) {
 
     if (firstLine === "[Themes]") {
       const removeCount =
-        component.children[index + 1] &&
-        renderedText(component.children[index + 1]!).trim() === ""
+        component.children[index + 1] && renderedText(component.children[index + 1]!).trim() === ""
           ? 2
           : 1;
       component.children.splice(index, removeCount);
@@ -174,14 +157,8 @@ function columns(left: string, right: string, width: number) {
   const rightWidth = Math.max(1, width - leftWidth - 1);
   const fittedLeft = truncateToWidth(left, leftWidth);
   const fittedRight = truncateToWidth(right, rightWidth);
-  const gap = Math.max(
-    1,
-    width - visibleWidth(fittedLeft) - visibleWidth(fittedRight),
-  );
-  return truncateToWidth(
-    `${fittedLeft}${" ".repeat(gap)}${fittedRight}`,
-    width,
-  );
+  const gap = Math.max(1, width - visibleWidth(fittedLeft) - visibleWidth(fittedRight));
+  return truncateToWidth(`${fittedLeft}${" ".repeat(gap)}${fittedRight}`, width);
 }
 
 export default function uiCustomization(pi: ExtensionAPI) {
@@ -230,10 +207,7 @@ export default function uiCustomization(pi: ExtensionAPI) {
           const art = TITLE_LINES.map((line, row) =>
             center(gradientText(line, row * 0.045), width),
           );
-          const subtitle = center(
-            `${BOLD}${gradientText(title, 0.18)}${RESET}`,
-            width,
-          );
+          const subtitle = center(`${BOLD}${gradientText(title, 0.18)}${RESET}`, width);
           return ["", ...art, subtitle, ""];
         },
         invalidate() {},
@@ -261,13 +235,9 @@ export default function uiCustomization(pi: ExtensionAPI) {
           }
 
           const contextPercent =
-            modelInfo.contextPercent === null
-              ? "?"
-              : `${Math.round(modelInfo.contextPercent)}`;
+            modelInfo.contextPercent === null ? "?" : `${Math.round(modelInfo.contextPercent)}`;
           const contextWindow =
-            modelInfo.contextWindow > 0
-              ? formatTokens(modelInfo.contextWindow)
-              : "?";
+            modelInfo.contextWindow > 0 ? formatTokens(modelInfo.contextWindow) : "?";
           const tps =
             modelInfo.tokensPerSecond === null
               ? "— tok/s"
@@ -288,9 +258,7 @@ export default function uiCustomization(pi: ExtensionAPI) {
             .sort(([a], [b]) => a.localeCompare(b))
             .flatMap(([, text]) => text.split("\n"));
           for (const statusLine of statusLines) {
-            lines.push(
-              truncateToWidth(statusLine, width, theme.fg("dim", "...")),
-            );
+            lines.push(truncateToWidth(statusLine, width, theme.fg("dim", "...")));
           }
 
           return lines;

@@ -5,7 +5,7 @@ import path from "node:path";
 import { test } from "node:test";
 import type { LiveWindow } from "./src/store.ts";
 import { deleteSessionFiles, isProcessAlive, parseWindow, WindowStore } from "./src/store.ts";
-import type { SessionRow, TreeState } from "./src/tree.ts";
+import type { SessionRow } from "./src/tree.ts";
 import { buildTree, compactTitle, flatten, navigate, selected, sessionLabel } from "./src/tree.ts";
 import { conversationFrom, lastUserText } from "./src/transcript.ts";
 import {
@@ -273,10 +273,7 @@ test("arrow keys navigate regardless of terminal cursor mode", () => {
   assert.equal(treeKeyFor("l", keys), "right");
   assert.equal(treeKeyFor("h", keys), "left");
   assert.equal(treeKeyFor("x", keys), undefined);
-  assert.equal(
-    treeKeyFor("\x1b[A", { matches: (_d, id) => id === "tui.select.up" }),
-    "up",
-  );
+  assert.equal(treeKeyFor("\x1b[A", { matches: (_d, id) => id === "tui.select.up" }), "up");
 });
 
 test("enter switches into a free session and refuses one already open", () => {
@@ -386,12 +383,19 @@ function harness(
 ) {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), "st-probe-"));
   const store = new WindowStore(dir, process.pid, () => true, "mine");
-  const theme = new Proxy({}, { get: () => (...a: unknown[]) => String(a.at(-1) ?? "") });
+  const theme = new Proxy(
+    {},
+    {
+      get:
+        () =>
+        (...a: unknown[]) =>
+          String(a.at(-1) ?? ""),
+    },
+  );
   const tui = { terminal: { rows: 30 }, requestRender() {} };
   const keys = {
     matches: (d: string, n: string) =>
-      (n === "tui.select.cancel" && d === "\x1b") ||
-      (n === "tui.select.confirm" && d === "\r"),
+      (n === "tui.select.cancel" && d === "\x1b") || (n === "tui.select.confirm" && d === "\r"),
   };
 
   let component: { handleInput(d: string): void; render(w: number): string[] };
@@ -417,7 +421,11 @@ function harness(
     footer: () => component.render(100).at(-1)?.trim() ?? "",
     screen: () => component.render(100).join("\n"),
     rows: () =>
-      component.render(100).slice(2, 14).map((l) => l.split("│")[0]?.trimEnd() ?? "").filter(Boolean),
+      component
+        .render(100)
+        .slice(2, 14)
+        .map((l) => l.split("│")[0]?.trimEnd() ?? "")
+        .filter(Boolean),
     outcome: () => outcome,
   };
 }
@@ -557,7 +565,10 @@ test("escape closes with no action", () => {
 
 // --- conversation preview ---------------------------------------------------
 
-const messageEntry = (role: string, content: unknown) => ({ type: "message", message: { role, content } });
+const messageEntry = (role: string, content: unknown) => ({
+  type: "message",
+  message: { role, content },
+});
 
 test("the conversation is user and assistant text, without the machinery", () => {
   const turns = conversationFrom([
@@ -600,7 +611,10 @@ test("a name outranks the last message, which outranks the first", () => {
   const row = session({ firstMessage: "how it started", lastMessage: "how it is going" });
   assert.equal(sessionLabel(row, undefined), "how it is going");
   assert.equal(sessionLabel({ ...row, name: "the refactor" }, undefined), "the refactor");
-  assert.equal(sessionLabel(session({ firstMessage: "how it started" }), undefined), "how it started");
+  assert.equal(
+    sessionLabel(session({ firstMessage: "how it started" }), undefined),
+    "how it started",
+  );
 });
 
 test("conversation lines mark who spoke and wrap to the pane", () => {
@@ -613,7 +627,10 @@ test("conversation lines mark who spoke and wrap to the pane", () => {
   );
   assert.equal(lines[0]?.role, "user");
   assert.match(lines[0]?.text ?? "", /^\u203a /);
-  assert.ok(lines.every((line) => line.text.length <= 20), "no line may overflow the pane");
+  assert.ok(
+    lines.every((line) => line.text.length <= 20),
+    "no line may overflow the pane",
+  );
   assert.ok(
     lines.some((line) => line.role === "none" && line.text === ""),
     "turns are separated by a blank line",
@@ -682,7 +699,10 @@ test("an unknown state in a snapshot is dropped rather than shown", () => {
 
 test("n asks for a new session in the selected directory, with an anchor to get there", () => {
   const view = harness(
-    [session({ path: "/s/old", cwd: "/repo/a" }), session({ path: "/s/newer", cwd: "/repo/a", modified: 2000 })],
+    [
+      session({ path: "/s/old", cwd: "/repo/a" }),
+      session({ path: "/s/newer", cwd: "/repo/a", modified: 2000 }),
+    ],
     [],
   );
   view.press("n");

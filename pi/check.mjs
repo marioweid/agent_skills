@@ -95,6 +95,25 @@ const scan = (directory) => {
 // publishable and were previously unchecked.
 scan(resolve(root, ".."));
 const extensionsLock = json("extensions/package-lock.json");
+const extensionsManifest = json("extensions/package.json");
+assert.deepEqual(extensionsLock.packages[""].dependencies, extensionsManifest.dependencies);
+assert.deepEqual(extensionsLock.packages[""].devDependencies, extensionsManifest.devDependencies);
+// Effect prereleases can satisfy a caret across incompatible beta/rc releases.
+// Match the shared platform adapter to the selected runtime rather than trusting that range.
+assert.equal(
+  extensionsManifest.overrides?.["@effect/platform-node"]?.["@effect/platform-node-shared"],
+  extensionsManifest.dependencies.effect,
+  "the shared Effect adapter override must match the runtime",
+);
+for (const [path, entry] of Object.entries(extensionsLock.packages)) {
+  if (path.endsWith("node_modules/@effect/platform-node-shared")) {
+    assert.equal(
+      entry.version,
+      extensionsManifest.dependencies.effect,
+      "the locked shared Effect adapter must match the runtime",
+    );
+  }
+}
 for (const [path, entry] of Object.entries(extensionsLock.packages)) {
   if (!path || !entry.resolved) continue;
   assert.equal(new URL(entry.resolved).origin, "https://registry.npmjs.org");
@@ -121,7 +140,7 @@ for (const entry of readdirSync(extensionsDir, { withFileTypes: true })) {
     const name = String(file);
     if (!name.endsWith(".test.ts")) continue;
     assert(
-      !name.includes("/"),
+      !/[\\/]/.test(name),
       `${entry.name}/${name} is nested; the test runner only globs */*.test.ts`,
     );
   }
@@ -138,14 +157,18 @@ assert(
   `pi/README.md names a different pi than the lockfile's ${piVersion}`,
 );
 
-// The build loop dispatches these five roles by name; a missing or renamed file
+// Optional delegation dispatches these five roles by name; a missing or renamed file
 // fails at spawn time, deep inside a run. Catch it here instead.
 const roles = ["scout", "architect", "implementer", "reviewer", "scribe"];
 for (const role of roles) {
   const file = resolve(root, `agents/${role}.md`);
   assert(existsSync(file), `Missing role file agents/${role}.md`);
   const frontmatter = readFileSync(file, "utf8").split("---")[1] ?? "";
-  assert.match(frontmatter, new RegExp(`^name: ${role}$`, "m"), `agents/${role}.md: name must be ${role}`);
+  assert.match(
+    frontmatter,
+    new RegExp(`^name: ${role}$`, "m"),
+    `agents/${role}.md: name must be ${role}`,
+  );
   assert.match(frontmatter, /^model: \S+\/\S+$/m, `agents/${role}.md: model must be provider/id`);
   assert.match(frontmatter, /^tools: /m, `agents/${role}.md: tools allowlist is required`);
 }
