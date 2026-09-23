@@ -38,7 +38,7 @@ ln -s "$PWD/usage" ~/.pi/agent/extensions/usage
 name: critic
 description: Adversarial final reviewer. Writes no code.
 tools: read, grep, find, ls, bash
-model: openai-codex/gpt-5.6-sol
+model: openai-codex/gpt-6-astra
 thinking: high
 ---
 

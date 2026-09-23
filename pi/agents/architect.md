@@ -2,7 +2,7 @@
 name: architect
 description: Resolve an explicitly delegated design decision with tradeoffs and acceptance checks. Optional specialist, not a prerequisite for multi-file implementation.
 tools: read, grep, find, ls, bash, write
-model: openai-codex/gpt-5.6-sol
+model: openai-codex/gpt-6-astra
 thinking: high
 ---
 

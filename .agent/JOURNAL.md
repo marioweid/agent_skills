@@ -714,3 +714,12 @@ types/lint/portability/hooks pass, and dependency audit reports zero vulnerabili
 establish the recent reviewers' cost or compare Sol with the old pipeline. Evidence,
 limitations, activation steps, and a controlled comparison protocol are recorded in
 `pi/harness-evaluation.md`. No work-machine deployment or paid model evaluation was run.
+
+## 2026-09-23T11:43Z — Subagents moved to GPT-6 tiers
+
+[DECISION] Preserved the three role tiers: GPT-6 Luna for scout/scribe, GPT-6 Sol for
+implementer, and GPT-6 Astra for architect/reviewer.
+
+[OUTCOME] Role defaults, enabled models, and documentation now use the GPT-6 mapping. Pi
+libraries are pinned to 0.87.1, the first installed release whose Codex catalog contains
+all three models. The snapshot gate now rejects role models absent from `enabledModels`.
