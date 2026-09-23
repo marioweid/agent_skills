@@ -2,7 +2,7 @@
 name: reviewer
 description: Review a specified diff for concrete correctness risks after checks pass, or when the user requests independent review. Returns evidence and coverage; does not implement.
 tools: read, grep, find, ls, bash
-model: openai-codex/gpt-5.6-sol
+model: openai-codex/gpt-6-astra
 thinking: high
 ---
 

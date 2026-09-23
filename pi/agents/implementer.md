@@ -2,7 +2,7 @@
 name: implementer
 description: Implement a bounded delegated task with clear acceptance checks. A separate design document is optional.
 tools: read, grep, find, ls, bash, edit, write
-model: openai-codex/gpt-5.6-terra
+model: openai-codex/gpt-6-sol
 thinking: high
 ---
 

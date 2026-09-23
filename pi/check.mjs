@@ -169,7 +169,12 @@ for (const role of roles) {
     new RegExp(`^name: ${role}$`, "m"),
     `agents/${role}.md: name must be ${role}`,
   );
-  assert.match(frontmatter, /^model: \S+\/\S+$/m, `agents/${role}.md: model must be provider/id`);
+  const model = frontmatter.match(/^model: (\S+\/\S+)$/m)?.[1];
+  assert(model, `agents/${role}.md: model must be provider/id`);
+  assert(
+    settings.enabledModels.includes(model),
+    `agents/${role}.md: ${model} must be one of the enabled models`,
+  );
   assert.match(frontmatter, /^tools: /m, `agents/${role}.md: tools allowlist is required`);
 }
 

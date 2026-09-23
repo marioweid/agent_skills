@@ -2,7 +2,7 @@
 name: scribe
 description: Handle a substantial explicitly delegated documentation or memory task. Routine completion notes belong to the implementation owner.
 tools: read, grep, find, ls, bash, edit, write
-model: openai-codex/gpt-5.6-luna
+model: openai-codex/gpt-6-luna
 thinking: medium
 ---
 

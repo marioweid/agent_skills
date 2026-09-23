@@ -2,7 +2,7 @@
 name: scout
 description: Answer one explicitly delegated codebase question with a brief and file references. Optional reconnaissance, not a prerequisite for planning or editing.
 tools: read, grep, find, ls, bash
-model: openai-codex/gpt-5.6-luna
+model: openai-codex/gpt-6-luna
 thinking: medium
 ---
 
