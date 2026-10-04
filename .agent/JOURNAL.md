@@ -723,3 +723,15 @@ implementer, and GPT-6 Astra for architect/reviewer.
 [OUTCOME] Role defaults, enabled models, and documentation now use the GPT-6 mapping. Pi
 libraries are pinned to 0.87.1, the first installed release whose Codex catalog contains
 all three models. The snapshot gate now rejects role models absent from `enabledModels`.
+
+## 2026-10-04T07:26Z — Implementer moved to GPT-6.1 Sol
+
+[DECISION] Replaced the implementer's GPT-6 Sol role default with GPT-6.1 Sol; the other
+role tiers remain GPT-6 Luna and GPT-6 Astra.
+
+[OUTCOME] Pi libraries and setup documentation now pin 1.0.2, whose Codex catalog includes
+`gpt-6.1-sol`. Two transitive audit advisories are held at fixed versions with exact npm
+overrides; the audit, type check, lint, and 201 tests pass.
+
+[DISCOVERY] Pi 1.x now has built-in MCP support, so the standard claiming Pi cannot load
+MCP was corrected. This setup still configures no MCP server.

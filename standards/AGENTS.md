@@ -107,7 +107,9 @@ Your training data lags. Never recall a version, a flag, or an API shape from me
 2. **The tool itself.** `--help`, `--version`, `npm view <pkg> version`, `uv pip show`, `cargo info`.
 3. **A registry over `curl`.** `curl -s registry.npmjs.org/<pkg>/latest` returns version, license and the real dependency list as JSON — no HTML to fight.
 
-pi has no MCP, and that is deliberate (`docs/usage.md`). The three steps above still answer almost every real lookup faster than a search does — reach for them first.
+Pi 1.x supports MCP, but this setup does not require an MCP server for routine lookups.
+The three steps above still answer almost every real lookup faster than a search does — reach
+for them first.
 
 When a question genuinely needs the open web, `web_search` and `web_fetch` (the `web` extension) are yours: DuckDuckGo's HTML endpoint and an HTML-to-text reader, no API key, no account. Use `web_search` for discovery — "is there a lighter alternative to X", "what is current practice for Y" — and `web_fetch` when you already know the URL. Never delegate a lookup to another harness; this setup is pi-only.
 
