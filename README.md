@@ -108,7 +108,7 @@ The roles use three tiers:
 | Role | Model | Why |
 |---|---|---|
 | `scout`, `scribe` | `gpt-6-luna` | bounded lookup and documentation assignments |
-| `implementer` | `gpt-6-sol` | the default working tier |
+| `implementer` | `gpt-6.1-sol` | the default working tier |
 | `architect`, `reviewer` | `gpt-6-astra` | the judgement calls |
 
 A machine on another provider does **not** edit these files. `~/.pi/agent/agents/`
@@ -207,7 +207,7 @@ not installed this way — they need a writable `node_modules`, so link the chec
 - **Codex skills** live at the shared `~/.agents/skills`. Leave `~/.codex/skills`
   alone; Codex keeps its built-in system skills there.
 - **`pi/settings.json` is not the work machine's config.** It is a portable snapshot
-  pinned to `@earendil-works/pi-coding-agent@0.87.1`; the work machine runs its own
+  pinned to `@earendil-works/pi-coding-agent@1.0.2`; the work machine runs its own
   provider and keeps company-only settings in files that are never linked from here.
   Run `node pi/check.mjs` before committing.
 - Extension details: [pi/extensions/README.md](pi/extensions/README.md).

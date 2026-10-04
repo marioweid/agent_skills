@@ -1,13 +1,14 @@
 # Direct Codex Pi snapshot
 
 This snapshot retires the `localhost:8787`/Headroom proxy. It pins Pi CLI
-`@earendil-works/pi-coding-agent@0.87.1` and ponytail 4.9.0. Subagents come
+`@earendil-works/pi-coding-agent@1.0.2` and ponytail 4.9.0. Subagents come
 from the vendored `extensions/subagents` here, not from the `pi-subagents`
 package that used to be installed alongside it.
 
 `settings.json` is a non-secret preference snapshot; it has no `models.json`.
-Pi 0.87.1's built-in OpenAI Codex catalog contains the snapshot's GPT-5.6
-Terra default and GPT-6 Luna, Sol, and Astra role models, and routes direct Codex through
+Pi 1.0.2's built-in OpenAI Codex catalog contains the snapshot's GPT-5.6
+Terra default and GPT-6 Luna, GPT-6.1 Sol, and GPT-6 Astra role models, and routes direct
+Codex through
 `https://chatgpt.com/backend-api` (installed Pi sources:
 `docs/models.md`, “Overriding Built-in Providers”, and
 `node_modules/@earendil-works/pi-ai/dist/providers/openai-codex.js`). This
@@ -63,7 +64,7 @@ set -euo pipefail
 export npm_config_prefix="$HOME/.local"
 export npm_config_ignore_scripts=true
 export PATH="$npm_config_prefix/bin:$PATH"
-npm install -g --ignore-scripts @earendil-works/pi-coding-agent@0.87.1
+npm install -g --ignore-scripts @earendil-works/pi-coding-agent@1.0.2
 ```
 
 Persist this user-writable prefix/PATH in the owner's shell setup; no `sudo`
@@ -133,7 +134,7 @@ home-manager.extraSpecialArgs = { inherit inputs; };
 }
 ```
 
-Retain the current nixpkgs lock and verify installed Pi is 0.87.1. Existing
+Retain the current nixpkgs lock and verify installed Pi is 1.0.2. Existing
 correct Home Manager links replace the macOS helper. Copy the snapshot's
 settings/npm pair from a checkout at the same locked `agentSkills` revision
 using the shared writable flow. After publication, update only that input:
@@ -162,5 +163,5 @@ activation/rebuild is an owner follow-up, not part of copying this snapshot.
 macOS runtime, native optional dependencies, and authenticated provider
 behavior remain unverified until tested on macOS.
 
-Official references reviewed: installed Pi 0.87.1 `README.md`,
-`docs/{quickstart,settings,packages,providers,models,skills,environment-variables}.md`.
+Official references reviewed: installed Pi 1.0.2 `README.md`,
+`docs/{quickstart,settings,packages,providers,models,skills,mcp,environment-variables}.md`.
